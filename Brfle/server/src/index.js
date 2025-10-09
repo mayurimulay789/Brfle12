@@ -7,12 +7,6 @@ const path = require('path'); // Add this missing import
 const connectDB = require('./config/db');
 const authRoutes = require('../routes/auth');
 const adminRoutes = require('../routes/admin');
-const courseRoutes = require("../routes/courseRoutes");
-const paymentRoutes = require("../routes/paymentRoutes");
-const certificateRoutes = require("../routes/certificateRoutes");
-const userRoutes = require('../routes/userRoutes');
-// Remove chatRoutes if you don't need it, or add the import if you do
-// const chatRoutes = require('../routes/chatRoutes');
 
 dotenv.config();
 
@@ -24,10 +18,7 @@ connectDB();
 // Middleware
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Serve uploaded files from the uploads directory
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use(express.urlencoded({ extended: true })); // Add this line to parse URL-encoded bodies
 
 // Debug middleware to log request body
 app.use((req, res, next) => {
@@ -38,12 +29,6 @@ app.use((req, res, next) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
-app.use('/api/courses', courseRoutes);
-app.use("/api/payment", paymentRoutes);
-app.use("/api/certificates", certificateRoutes);
-app.use('/api/users', userRoutes);
-// Add chatRoutes back if needed:
-// app.use('/api/chat', chatRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
