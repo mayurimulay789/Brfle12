@@ -22,8 +22,6 @@ import CourseForm from "./pages/CourseForm";
 import RegistrationForm from "./components/RegistrationForm.jsx";
 import LoginForm from "./components/LoginForm.jsx";
 import Dashboard from "./components/Dashboard.jsx";
-//import ConditionalDashboard from "./components/ConditionalDashboard.jsx";
-
 
 function Home() {
   return (
@@ -73,6 +71,7 @@ function App() {
         </Routes>
       </div>
       <Footer />
+      <Chatbot />
     </Router>
   );
 }

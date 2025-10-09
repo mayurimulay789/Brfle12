@@ -10,7 +10,7 @@ const courseRoutes = require("../routes/courseRoutes");
 const paymentRoutes = require("../routes/paymentRoutes");
 const certificateRoutes = require("../routes/certificateRoutes");
 const userRoutes = require('../routes/userRoutes');
-
+const chatRoutes = require('../routes/chat');
 
 dotenv.config();
 
@@ -24,6 +24,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // Add this line to parse URL-encoded bodies
 
+// Serve uploaded files from the uploads directory
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
 // Debug middleware to log request body
 app.use((req, res, next) => {
   console.log('Request Body:', req.body);
@@ -36,13 +40,13 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/courses', courseRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/certificates", certificateRoutes);
-app.use('/api/auth', require('../routes/auth'));
 app.use('/api/users', userRoutes);
+app.use('/api/chat', chatRoutes);
+
 // Basic route for testing
 app.get('/', (req, res) => {
   res.send('Server is running');
 });
- 
 
 const PORT = process.env.PORT || 5000;
 
