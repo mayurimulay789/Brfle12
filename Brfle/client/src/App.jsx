@@ -17,6 +17,7 @@ import Services from "./pages/services.jsx";
 import RegistrationForm from "./components/RegistrationForm.jsx";
 import LoginForm from "./components/LoginForm.jsx";
 import Dashboard from "./components/Dashboard.jsx";
+import Chatbot from "./components/Chatbot.jsx";
 
 function Home() {
   return (
@@ -58,6 +59,7 @@ function App() {
         </Routes>
       </div>
       <Footer />
+      <Chatbot />
     </Router>
   );
 }
