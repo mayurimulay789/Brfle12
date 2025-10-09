@@ -1,32 +1,37 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
-import { login } from '../feature/auth/authSlice';
-import axios from 'axios';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { login } from "../feature/auth/authSlice";
+import axios from "axios";
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [formData, setFormData] = useState({
-    email: '',
-    password: '',
-  });
-  const [message, setMessage] = useState('');
+  const [formData, setFormData] = useState({ email: "", password: "" });
+  const [message, setMessage] = useState("");
 
   const { email, password } = formData;
 
-  const onChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
+  const onChange = (e) =>
+    setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const onSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', formData);
-      setMessage('Login successful!');
-      localStorage.setItem('token', res.data.token);
-      dispatch(login({ user: res.data, token: res.data.token }));
-      navigate('/');
+      const res = await axios.post("http://localhost:5000/api/auth/login", formData);
+      const data = res.data;
+
+      // Save token & user info
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("userName", data.username); // corrected
+      localStorage.setItem("userType", data.role);
+
+      dispatch(login({ user: data, token: data.token }));
+
+      // Redirect to user dashboard
+      navigate("/userdashboard");
     } catch (err) {
-      setMessage(err.response.data.message || 'Login failed');
+      setMessage(err.response?.data?.message || "Login failed");
     }
   };
 
@@ -56,11 +61,14 @@ const LoginForm = () => {
             required
           />
         </div>
-        <button type="submit" className="w-full bg-blue-500 text-white py-2 rounded">
+        <button
+          type="submit"
+          className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+        >
           Login
         </button>
       </form>
-      {message && <p className="mt-4 text-center">{message}</p>}
+      {message && <p className="mt-4 text-center text-red-500">{message}</p>}
     </div>
   );
 };

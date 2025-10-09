@@ -1,23 +1,23 @@
+// routes/authRoutes.js
 const express = require('express');
 const jwt = require('jsonwebtoken');
-const User = require('../model/User');
-
+const User = require('../models/User');
 const router = express.Router();
 
-// @desc    Register user
-// @route   POST /api/auth/register
-// @access  Public
+// Generate JWT token
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: '30d',
+  });
+};
+
+// REGISTER USER
 router.post('/register', async (req, res) => {
   const { username, email, password, role } = req.body;
-
   try {
-    // Check if user exists
     const userExists = await User.findOne({ email });
-    if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
+    if (userExists) return res.status(400).json({ message: 'User already exists' });
 
-    // Create user
     const user = await User.create({
       username,
       email,
@@ -41,12 +41,9 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// @desc    Authenticate user & get token
-// @route   POST /api/auth/login
-// @access  Public
+// LOGIN USER
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
-
   try {
     const user = await User.findOne({ email });
 
@@ -65,12 +62,5 @@ router.post('/login', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
-
-// Generate JWT
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
-  });
-};
 
 module.exports = router;
