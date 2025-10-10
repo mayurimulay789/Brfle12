@@ -220,13 +220,13 @@ export default function Navbar() {
             <>
               <Link
                 to="/login"
-                className="hover:text-gray-300 transition-colors text-white border border-white rounded px-3 py-1 text-sm"
+                className="hover:bg-amber-600 transition-colors text-white border border-amber-700 bg-amber-500  rounded px-3 py-1.5 text-sm"
               >
                 Login
               </Link>
               <Link
                 to="/register"
-                className="hover:text-gray-300 transition-colors text-white border border-white rounded px-3 py-1 text-sm"
+                className="hover:bg-amber-600 transition-colors text-white border border-amber-700 bg-amber-500 rounded px-3 py-1.5 text-sm"
               >
                 Register
               </Link>
