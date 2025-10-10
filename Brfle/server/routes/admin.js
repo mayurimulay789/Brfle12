@@ -1,6 +1,20 @@
 const express = require('express');
 const User = require('../model/User');
 const { protect, admin } = require('../middleware/auth');
+const {
+  getAllUsers,
+  getUserById,
+  updatedUser,
+  deleteUser
+} = require('../controllers/adminController');
+
+const {
+  getCourses,
+  createCourse,
+  getCourse,
+  updateCourse,
+  deleteCourse
+} = require('../controllers/courseController');
 
 const router = express.Router();
 
@@ -8,63 +22,17 @@ const router = express.Router();
 router.use(protect);
 router.use(admin);
 
-// @desc    Get all users
-// @route   GET /api/admin/users
-// @access  Private/Admin
-router.get('/users', async (req, res) => {
-  try {
-    const users = await User.find({ role: { $ne: 'admin' } }).select('-password');
-    res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+// Specific routes first
+router.get('/users', getAllUsers);
+router.put('/users/:id', updatedUser);    // PUT before GET with params
+router.delete('/users/:id', deleteUser);  // DELETE before GET with params
+router.get('/users/:id', getUserById); 
 
-// @desc    Update user
-// @route   PUT /api/admin/users/:id
-// @access  Private/Admin
-router.put('/users/:id', async (req, res) => {
-  const { username, email, role } = req.body;
-
-  try {
-    const user = await User.findById(req.params.id);
-
-    if (user) {
-      user.username = username || user.username;
-      user.email = email || user.email;
-      user.role = role || user.role;
-
-      const updatedUser = await user.save();
-      res.json({
-        _id: updatedUser._id,
-        username: updatedUser.username,
-        email: updatedUser.email,
-        role: updatedUser.role,
-      });
-    } else {
-      res.status(404).json({ message: 'User not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// @desc    Delete user
-// @route   DELETE /api/admin/users/:id
-// @access  Private/Admin
-router.delete('/users/:id', async (req, res) => {
-  try {
-    const user = await User.findById(req.params.id);
-
-    if (user) {
-      await user.remove();
-      res.json({ message: 'User removed' });
-    } else {
-      res.status(404).json({ message: 'User not found' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
+// for courses management
+router.get('/courses', getCourses);
+router.post('/courses', createCourse);
+router.put('/courses/:id', updateCourse);    // PUT before GET with params
+router.delete('/courses/:id', deleteCourse);  // DELETE before GET with params
+router.get('/courses/:id', getCourse);
 
 module.exports = router;
