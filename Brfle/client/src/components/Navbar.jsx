@@ -156,11 +156,7 @@ export default function Navbar() {
             <>
               <Link
                 to="/login"
-<<<<<<< HEAD
-                className="hover:bg-amber-600 transition-colors text-white border border-amber-700 bg-amber-500  rounded px-3 py-1.5 text-sm"
-=======
                 className="hover:bg-amber-600 transition-colors text-white border border-amber-700 bg-amber-500 rounded px-3 py-1.5 text-sm"
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
               >
                 Login
               </Link>

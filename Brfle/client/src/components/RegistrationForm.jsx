@@ -24,8 +24,6 @@ const RegistrationForm = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const validateEmail = (email) => /\S+@\S+\.\S+/.test(email);
-<<<<<<< HEAD
-=======
 
   // ✅ Clear messages when component mounts
   useEffect(() => {
@@ -39,37 +37,10 @@ const RegistrationForm = () => {
       navigate('/');
     }
   }, [isAuthenticated, navigate]);
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
 
   const onSubmit = async (e) => {
     e.preventDefault();
 
-<<<<<<< HEAD
-    // Validations
-    if (!FullName.trim()) {
-      setMessage('FullName is required');
-      return;
-    }
-    if (!validateEmail(email)) {
-      setMessage('Please enter a valid email');
-      return;
-    }
-    if (password.length < 6) {
-      setMessage('Password must be at least 6 characters');
-      return;
-    }
-
-    try {
-      const res = await axios.post(
-        'http://localhost:5000/api/auth/register',
-        formData
-      );
-      setMessage('Registration successful!');
-      localStorage.setItem('token', res.data.token);
-      navigate('/');
-    } catch (err) {
-      setMessage(err.response?.data?.message || 'Registration failed');
-=======
     // ✅ Clear previous messages
     setLocalMessage('');
     dispatch(clearError());
@@ -78,7 +49,6 @@ const RegistrationForm = () => {
     if (!FullName.trim()) {
       setLocalMessage('FullName is required');
       return;
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
     }
     if (!validateEmail(email)) {
       setLocalMessage('Please enter a valid email');
@@ -121,11 +91,7 @@ const RegistrationForm = () => {
             Fill in your information to create an account
           </p>
           <form onSubmit={onSubmit} className="space-y-4">
-<<<<<<< HEAD
-            {/* Username */}
-=======
             {/* FullName */}
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
             <div>
               <label className="block text-gray-700 mb-1">FullName</label>
               <input
@@ -136,10 +102,7 @@ const RegistrationForm = () => {
                 placeholder="Enter your FullName"
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
                 required
-<<<<<<< HEAD
-=======
                 disabled={loading} // ✅ Disable during loading
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
               />
             </div>
 
@@ -154,10 +117,7 @@ const RegistrationForm = () => {
                 placeholder="Enter your email"
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
                 required
-<<<<<<< HEAD
-=======
                 disabled={loading} // ✅ Disable during loading
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
               />
             </div>
 
@@ -172,10 +132,7 @@ const RegistrationForm = () => {
                 placeholder="Enter your password"
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
                 required
-<<<<<<< HEAD
-=======
                 disabled={loading} // ✅ Disable during loading
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
               />
             </div>
 
@@ -187,10 +144,7 @@ const RegistrationForm = () => {
                 value={role}
                 onChange={onChange}
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
-<<<<<<< HEAD
-=======
                 disabled={loading} // ✅ Disable during loading
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
               >
                 <option value="student">Student</option>
                 <option value="instructor">Instructor</option>
@@ -201,20 +155,6 @@ const RegistrationForm = () => {
             <div className="flex justify-between items-center text-sm">
               <button
                 type="submit"
-<<<<<<< HEAD
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded font-semibold transition duration-300"
-              >
-                Register
-              </button>
-            </div>
-          </form>
-          {message && <p className="mt-4 text-center text-red-500">{message}</p>}
-          <p className="mt-4 text-center text-gray-600">
-            Already have an account?{' '}
-            <span
-              onClick={() => navigate('/login')}
-              className="text-amber-500 font-semibold cursor-pointer hover:underline"
-=======
                 disabled={loading}
                 className={`w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded font-semibold transition duration-300 ${
                   loading ? 'opacity-50 cursor-not-allowed' : ''
@@ -241,7 +181,6 @@ const RegistrationForm = () => {
               className={`text-amber-500 font-semibold cursor-pointer hover:underline ${
                 loading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
             >
               Login
             </span>

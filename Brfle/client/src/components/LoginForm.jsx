@@ -1,30 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-<<<<<<< HEAD
-import { useDispatch } from 'react-redux';
-import { login } from '../feature/auth/authSlice';
-import axios from 'axios';
-=======
 import { useDispatch, useSelector } from 'react-redux';
 import { loginUser, clearError, clearSuccess } from '../store/slices/authSlice';
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline'; 
 
 const LoginForm = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
-<<<<<<< HEAD
-  const [formData, setFormData] = useState({ email: '', password: '' });
-  const [message, setMessage] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-=======
   
   const { loading, error, success, isAuthenticated } = useSelector((state) => state.auth);
   
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [localMessage, setLocalMessage] = useState('');
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
 
   const { email, password } = formData;
 
@@ -32,28 +20,6 @@ const LoginForm = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const validateEmail = (email) => /\S+@\S+\.\S+/.test(email);
-<<<<<<< HEAD
-
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    if (!validateEmail(email)) {
-      setMessage('Please enter a valid email');
-      return;
-    }
-    if (password.length < 6) {
-      setMessage('Password must be at least 6 characters');
-      return;
-    }
-
-    try {
-      const res = await axios.post('http://localhost:5000/api/auth/login', formData);
-      setMessage('Login successful!');
-      localStorage.setItem('token', res.data.token);
-      dispatch(login({ user: res.data, token: res.data.token }));
-      navigate('/');
-    } catch (err) {
-      setMessage(err.response?.data?.message || 'Login failed');
-=======
 
   useEffect(() => {
     dispatch(clearError());
@@ -75,7 +41,6 @@ const LoginForm = () => {
     if (!validateEmail(email)) {
       setLocalMessage('Please enter a valid email');
       return;
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
     }
     if (password.length < 6) {
       setLocalMessage('Password must be at least 6 characters');
@@ -122,10 +87,7 @@ const LoginForm = () => {
                 placeholder="Enter your email"
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
                 required
-<<<<<<< HEAD
-=======
                 disabled={loading}
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
               />
             </div>
 
@@ -139,17 +101,6 @@ const LoginForm = () => {
                 placeholder="Enter your password"
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400 pr-10"
                 required
-<<<<<<< HEAD
-              />
-              <button
-  type="button"
-  onClick={() => setShowPassword(!showPassword)}
-  className="absolute right-3 top-2/3 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
->
-  {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-</button>
-
-=======
                 disabled={loading}
               />
               {/* ✅ FIXED BUTTON - JSX attribute removed */}
@@ -164,26 +115,11 @@ const LoginForm = () => {
                   <EyeIcon className="h-5 w-5" />
                 }
               </button>
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
             </div>
 
             <div className="flex justify-between items-center text-sm">
               <button
                 type="submit"
-<<<<<<< HEAD
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded font-semibold transition duration-300"
-              >
-                Log In
-              </button>
-            </div>
-          </form>
-          {message && <p className="mt-4 text-center text-red-500">{message}</p>}
-          <p className="mt-4 text-center text-gray-600">
-            Don't have an account?{' '}
-            <span
-              onClick={() => navigate('/register')}
-              className="text-amber-500 font-semibold cursor-pointer hover:underline"
-=======
                 disabled={loading}
                 className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded font-semibold transition duration-300 disabled:bg-amber-300 disabled:cursor-not-allowed"
               >
@@ -207,7 +143,6 @@ const LoginForm = () => {
               className={`text-amber-500 font-semibold cursor-pointer hover:underline ${
                 loading ? 'opacity-50 cursor-not-allowed' : ''
               }`}
->>>>>>> ba29775cccb36944971b47762de42cdc3c72ca3d
             >
               Register
             </span>
