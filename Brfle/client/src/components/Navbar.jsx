@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { logoutUser, manualLogout } from "../store/slices/authSlice"; // ✅ Correct imports
+import { logoutUser } from "../store/slices/authSlice";
 
 export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,12 +9,32 @@ export default function Navbar() {
   const toggleMenu = () => setIsOpen(!isOpen);
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
   
-  // ✅ Correct Redux hooks
   const dispatch = useDispatch();
-  const { user, isAuthenticated } = useSelector((state) => state.auth); // ✅ Correct path
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
+  // ✅ Enhanced debugging
+  useEffect(() => {
+    console.log("🔍 Navbar Debug - Full auth state:", { user, isAuthenticated });
+    console.log("🔍 User object:", user);
+    console.log("🔍 Is Authenticated:", isAuthenticated);
+    console.log("🔍 User type:", typeof user);
+    console.log("🔍 User properties:", user ? Object.keys(user) : "No user");
+    
+    // Also check localStorage as fallback
+    const storedUser = localStorage.getItem('user');
+    console.log("🔍 LocalStorage user:", storedUser);
+  }, [user, isAuthenticated]);
+
+  // ✅ Correct user display name function
+  const getUserDisplayName = () => {
+    if (!user) return 'User';
+    
+    // Use the correct field name: FullName (capital F)
+    return user.FullName || user.email || 'User';
+  };
 
   const handleLogout = () => {
-    dispatch(logoutUser()); // ✅ Correct logout action
+    dispatch(logoutUser());
     setDropdownOpen(false);
     setIsOpen(false);
   };
@@ -55,14 +75,14 @@ export default function Navbar() {
             </Link>
           ))}
           
-          {/* ✅ Fixed Auth Section */}
+          {/* ✅ Fixed Auth Section with correct field names */}
           {isAuthenticated ? (
             <div className="relative">
               <button
                 onClick={toggleDropdown}
                 className="hover:text-gray-300 transition-colors text-white border border-white rounded px-3 py-1 text-sm flex items-center"
               >
-                {user?.name || user?.username || user?.email} {/* ✅ Safe access */}
+                {getUserDisplayName()} {/* ✅ Now uses correct field */}
                 <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
@@ -113,6 +133,14 @@ export default function Navbar() {
                     onClick={() => setDropdownOpen(false)}
                   >
                     Certificates
+                  </Link>
+                  
+                  <Link
+                    to="/profile"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    Profile
                   </Link>
                   
                   <button
@@ -176,12 +204,12 @@ export default function Navbar() {
             </Link>
           ))}
           
-          {/* ✅ Mobile Auth Section */}
+          {/* ✅ Mobile Auth Section with correct field names */}
           <div className="pt-4 border-t border-gray-700">
             {isAuthenticated ? (
               <div className="space-y-3">
                 <div className="text-amber-400 text-sm">
-                  Welcome, {user?.name || user?.email}
+                  Welcome, {getUserDisplayName()} {/* ✅ Now uses correct field */}
                 </div>
                 <Link
                   to="/dashboard"
@@ -214,6 +242,20 @@ export default function Navbar() {
                   onClick={() => setIsOpen(false)}
                 >
                   My Courses
+                </Link>
+                <Link
+                  to="/certificates"
+                  className="block hover:text-gray-300 transition-colors text-white py-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Certificates
+                </Link>
+                <Link
+                  to="/profile"
+                  className="block hover:text-gray-300 transition-colors text-white py-2"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Profile
                 </Link>
                 <button
                   onClick={handleLogout}

@@ -9,7 +9,7 @@ const {
   addReview,
   getCourseStats
 } = require('../controllers/courseController');
-const { protect, instructor, admin } = require('../middleware/auth');
+const { protect, admin } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -17,14 +17,14 @@ const router = express.Router();
 router.get('/', getCourses);
 router.get('/:id', getCourse);
 
+
 // Protected routes
 router.use(protect);
 
-// Instructor routes
-router.post('/', instructor, createCourse);
-router.put('/:id', instructor, updateCourse);
-router.delete('/:id', instructor, deleteCourse);
-router.post('/:id/lessons', instructor, addLesson);
+router.post('/', createCourse);
+router.put('/:id', updateCourse);
+router.delete('/:id', deleteCourse);
+router.post('/:id/lessons', addLesson);
 
 // Student routes
 router.post('/:id/reviews', addReview);
