@@ -1,49 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../model/User');
-const bcrypt = require('bcryptjs');;
-const {generateToken} =require('../middleware/jwtToken');
-
-//   const registerUser=async (req, res) => {
-//   const { FullName, email, password, role } = req.body;
-
-//   try {
-//     // Check if user exists
-//     const userExists = await User.findOne({ email });
-//     if (userExists) {
-//       return res.status(400).json({ message: 'User already exists' });
-//     }
-
-//     //hashed password
-
-//     const hashedPassword = await bcrypt.hash(password, 10);
-//     console.log("hashedPassword",hashedPassword);
-
-//     // Create user
-    
-//     const user = await User.create({
-//       FullName,
-//       email,
-//       password: hashedPassword,
-
-//       role: role || 'student',
-//     });
-//     console.log("user created",user);
-
-//     if (user) {
-//       res.status(201).json({
-//         _id: user._id,
-//         FullName: user.FullName,
-//         email: user.email,
-//         role: user.role,
-//         token: generateToken(user._id),
-//       });
-//     } else {
-//       res.status(400).json({ message: 'Invalid user data' });
-//     }
-//   } catch (error) {
-//     res.status(500).json({ message: error.message });
-//   }
-// }
+const bcrypt = require('bcryptjs');
+const {generateToken} = require('../middleware/jwtToken');
 
 const registerUser = async (req, res) => {
   const { FullName, email, password, role } = req.body;
@@ -62,31 +20,34 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Create user - let the mongoose pre-save hook handle password hashing
+    // Create user
     const user = await User.create({
       FullName,
       email,
-      password, // Pass plain password, let mongoose hash it
+      password,
       role: role || 'student',
     });
 
     console.log("User created:", user);
 
-    // Generate token (make sure generateToken function exists)
+    // Generate token
     const token = generateToken(user._id);
 
+    // ✅ FIXED: Return consistent structure with nested user object
     res.status(201).json({
-      _id: user._id,
-      FullName: user.FullName,
-      email: user.email,
-      role: user.role,
+      user: {  // ✅ Wrap user data in user object
+        _id: user._id,
+        FullName: user.FullName,
+        email: user.email,
+        role: user.role,
+      },
       token: token,
+      message: 'User registered successfully'
     });
 
   } catch (error) {
     console.error("Registration error:", error);
     
-    // Handle duplicate key errors
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
       return res.status(400).json({ 
@@ -94,7 +55,6 @@ const registerUser = async (req, res) => {
       });
     }
     
-    // Handle validation errors
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(err => err.message);
       return res.status(400).json({ 
@@ -122,7 +82,6 @@ const loginUser = async (req, res) => {
     const user = await User.findOne({ email }).select('+password');
     
     if (!user) {
-      // Don't specify whether email or password was wrong (security best practice)
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
@@ -133,18 +92,17 @@ const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Update last login timestamp (optional)
-    // user.lastLogin = new Date();
-    await user.save();
-
-    // Return user data (excluding password)
+    // ✅ FIXED: Return consistent structure with nested user object
     res.status(200).json({
-      _id: user._id,
-      FullName: user.FullName,
-      email: user.email,
-      role: user.role,
-      lastLogin: user.lastLogin,
+      user: {  // ✅ Wrap user data in user object
+        _id: user._id,
+        FullName: user.FullName,
+        email: user.email,
+        role: user.role,
+        lastLogin: user.lastLogin,
+      },
       token: generateToken(user._id),
+      message: 'Login successful'
     });
 
   } catch (error) {
@@ -153,11 +111,9 @@ const loginUser = async (req, res) => {
   }
 };
 
-
-
 const logoutUser = async (req, res) => {
   try {
-    console.log(`User ${req.user._id} logged out`);
+    console.log(`User ${req.user?._id} logged out`);
     
     res.status(200).json({ 
       message: 'Logout successful',
@@ -168,13 +124,34 @@ const logoutUser = async (req, res) => {
   }
 };
 
+const getCurrentUser = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Not authenticated' });
+    }
+    
+    const user = await User.findById(req.user._id).select('-password');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    // ✅ FIXED: Return consistent structure
+    res.status(200).json({
+      user: {  // ✅ Wrap user data in user object
+        _id: user._id,
+        FullName: user.FullName,
+        email: user.email,
+        role: user.role,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = { 
-    registerUser,
-    loginUser ,
-    logoutUser
- };
-
-
-
-  
-
+  registerUser,
+  loginUser,
+  logoutUser,
+  getCurrentUser
+};

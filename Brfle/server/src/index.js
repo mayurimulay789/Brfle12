@@ -13,6 +13,7 @@ const cors = require("cors");
 const connectDB = require("../config/db"); // Make sure path matches your folder structure
 const authRoutes = require("../routes/auth");
 const adminRoutes = require("../routes/admin");
+const coursesRoutes = require("../routes/courseRoutes");
 
 // Initialize Express app
 const app = express();
@@ -46,6 +47,8 @@ app.use("/api/hello", (req, res) => {
 });
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/courses", coursesRoutes);
+
 
 // Default route for testing
 app.get("/", (req, res) => {
