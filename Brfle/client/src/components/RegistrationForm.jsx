@@ -1,16 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser, clearError, clearSuccess } from '../store/slices/authSlice';
 
 const RegistrationForm = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  // ✅ Get auth state from Redux
+  const { loading, error, success, isAuthenticated } = useSelector(state => state.auth);
+  
   const [formData, setFormData] = useState({
     FullName: '',
     email: '',
     password: '',
     role: 'student',
   });
-  const [message, setMessage] = useState('');
+  const [localMessage, setLocalMessage] = useState('');
 
   const { FullName, email, password, role } = formData;
 
@@ -19,35 +25,46 @@ const RegistrationForm = () => {
 
   const validateEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
+  // ✅ Clear messages when component mounts
+  useEffect(() => {
+    dispatch(clearError());
+    dispatch(clearSuccess());
+  }, [dispatch]);
+
+  // ✅ Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/');
+    }
+  }, [isAuthenticated, navigate]);
+
   const onSubmit = async (e) => {
     e.preventDefault();
 
+    // ✅ Clear previous messages
+    setLocalMessage('');
+    dispatch(clearError());
+
     // Validations
     if (!FullName.trim()) {
-      setMessage('FullName is required');
+      setLocalMessage('FullName is required');
       return;
     }
     if (!validateEmail(email)) {
-      setMessage('Please enter a valid email');
+      setLocalMessage('Please enter a valid email');
       return;
     }
     if (password.length < 6) {
-      setMessage('Password must be at least 6 characters');
+      setLocalMessage('Password must be at least 6 characters');
       return;
     }
 
-    try {
-      const res = await axios.post(
-        'http://localhost:5000/api/auth/register',
-        formData
-      );
-      setMessage('Registration successful!');
-      localStorage.setItem('token', res.data.token);
-      navigate('/');
-    } catch (err) {
-      setMessage(err.response?.data?.message || 'Registration failed');
-    }
+    // ✅ Dispatch register action (Redux handles everything)
+    dispatch(registerUser(formData));
   };
+
+  // ✅ Determine which message to display
+  const displayMessage = localMessage || error || success;
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-800">
@@ -74,7 +91,7 @@ const RegistrationForm = () => {
             Fill in your information to create an account
           </p>
           <form onSubmit={onSubmit} className="space-y-4">
-            {/* Username */}
+            {/* FullName */}
             <div>
               <label className="block text-gray-700 mb-1">FullName</label>
               <input
@@ -85,6 +102,7 @@ const RegistrationForm = () => {
                 placeholder="Enter your FullName"
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
                 required
+                disabled={loading} // ✅ Disable during loading
               />
             </div>
 
@@ -99,6 +117,7 @@ const RegistrationForm = () => {
                 placeholder="Enter your email"
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
                 required
+                disabled={loading} // ✅ Disable during loading
               />
             </div>
 
@@ -113,6 +132,7 @@ const RegistrationForm = () => {
                 placeholder="Enter your password"
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
                 required
+                disabled={loading} // ✅ Disable during loading
               />
             </div>
 
@@ -124,6 +144,7 @@ const RegistrationForm = () => {
                 value={role}
                 onChange={onChange}
                 className="w-full px-4 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-amber-400"
+                disabled={loading} // ✅ Disable during loading
               >
                 <option value="student">Student</option>
                 <option value="instructor">Instructor</option>
@@ -134,18 +155,32 @@ const RegistrationForm = () => {
             <div className="flex justify-between items-center text-sm">
               <button
                 type="submit"
-                className="w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded font-semibold transition duration-300"
+                disabled={loading}
+                className={`w-full bg-amber-500 hover:bg-amber-600 text-white py-2 rounded font-semibold transition duration-300 ${
+                  loading ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                Register
+                {loading ? 'Creating Account...' : 'Register'}
               </button>
             </div>
           </form>
-          {message && <p className="mt-4 text-center text-red-500">{message}</p>}
+
+          {/* ✅ Enhanced Message Display */}
+          {displayMessage && (
+            <p className={`mt-4 text-center ${
+              localMessage || error ? 'text-red-500' : 'text-green-500'
+            }`}>
+              {displayMessage}
+            </p>
+          )}
+
           <p className="mt-4 text-center text-gray-600">
             Already have an account?{' '}
             <span
-              onClick={() => navigate('/login')}
-              className="text-amber-500 font-semibold cursor-pointer hover:underline"
+              onClick={() => !loading && navigate('/login')}
+              className={`text-amber-500 font-semibold cursor-pointer hover:underline ${
+                loading ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
               Login
             </span>

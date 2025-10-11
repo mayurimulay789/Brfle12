@@ -15,7 +15,7 @@ const getAllUsers = async (req, res) => {
     // Search by username or email
     if (req.query.search) {
       query.$or = [
-        { username: { $regex: req.query.search, $options: 'i' } },
+        { FullName: { $regex: req.query.search, $options: 'i' } },
         { email: { $regex: req.query.search, $options: 'i' } }
       ];
     }
@@ -97,7 +97,7 @@ const getUserById = async (req, res) => {
 // @access  Private/Admin
 const updatedUser = async (req, res) => {
   try {
-    const { username, email, role, isActive } = req.body;
+    const { FullName, email, role, isActive } = req.body;
 
     // Check if user exists
     const user = await User.findById(req.params.id);
@@ -120,19 +120,19 @@ const updatedUser = async (req, res) => {
     }
 
     // Check if username already exists (excluding current user)
-    if (username && username !== user.username) {
-      const usernameExists = await User.findOne({ username });
-      if (usernameExists) {
+    if (FullName && FullName !== user.FullName) {
+      const FullNameExists = await User.findOne({ FullName });
+      if (FullNameExists) {
         return res.status(400).json({
           success: false,
-          message: 'Username already exists'
+          message: 'FullName already exists'
         });
       }
     }
 
     // Update user fields
     const updateFields = {};
-    if (username) updateFields.username = username;
+    if (FullName) updateFields.FullName = FullName;
     if (email) updateFields.email = email;
     if (role) updateFields.role = role;
     if (typeof isActive === 'boolean') updateFields.isActive = isActive;

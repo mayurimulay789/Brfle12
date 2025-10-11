@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const userSchema = new mongoose.Schema({
-  username: {
+  FullName: {
     type: String,
-    required: [true, 'Please add a username'],
-    unique: true,
+    required: [true, 'Please add a FullName'],
+    // Remove unique: true unless you want every FullName to be unique
   },
   email: {
     type: String,
@@ -30,14 +30,21 @@ const userSchema = new mongoose.Schema({
   timestamps: true,
 });
 
-// Encrypt password before saving
+// Encrypt password before saving - ONLY DO HASHING HERE
 userSchema.pre('save', async function(next) {
+  // Only run if password was modified
   if (!this.isModified('password')) {
     next();
+    return;
   }
 
-  const salt = await bcrypt.genSalt(10);
-  this.password = await bcrypt.hash(this.password, salt);
+  try {
+    const salt = await bcrypt.genSalt(10);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Match user entered password to hashed password in database

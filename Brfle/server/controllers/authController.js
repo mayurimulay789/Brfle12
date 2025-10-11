@@ -3,45 +3,111 @@ const User = require('../model/User');
 const bcrypt = require('bcryptjs');;
 const {generateToken} =require('../middleware/jwtToken');
 
-  const registerUser=async (req, res) => {
-  const { username, email, password, role } = req.body;
+//   const registerUser=async (req, res) => {
+//   const { FullName, email, password, role } = req.body;
+
+//   try {
+//     // Check if user exists
+//     const userExists = await User.findOne({ email });
+//     if (userExists) {
+//       return res.status(400).json({ message: 'User already exists' });
+//     }
+
+//     //hashed password
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+//     console.log("hashedPassword",hashedPassword);
+
+//     // Create user
+    
+//     const user = await User.create({
+//       FullName,
+//       email,
+//       password: hashedPassword,
+
+//       role: role || 'student',
+//     });
+//     console.log("user created",user);
+
+//     if (user) {
+//       res.status(201).json({
+//         _id: user._id,
+//         FullName: user.FullName,
+//         email: user.email,
+//         role: user.role,
+//         token: generateToken(user._id),
+//       });
+//     } else {
+//       res.status(400).json({ message: 'Invalid user data' });
+//     }
+//   } catch (error) {
+//     res.status(500).json({ message: error.message });
+//   }
+// }
+
+const registerUser = async (req, res) => {
+  const { FullName, email, password, role } = req.body;
 
   try {
+    // Validation
+    if (!FullName || !email || !password) {
+      return res.status(400).json({ 
+        message: 'Please provide FullName, email, and password' 
+      });
+    }
+
     // Check if user exists
     const userExists = await User.findOne({ email });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
 
-    //hashed password
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    console.log("hashedPassword",hashedPassword);
-
-    // Create user
+    // Create user - let the mongoose pre-save hook handle password hashing
     const user = await User.create({
-      username,
+      FullName,
       email,
-      password,
+      password, // Pass plain password, let mongoose hash it
       role: role || 'student',
     });
 
-    if (user) {
-      res.status(201).json({
-        _id: user._id,
-        username: user.username,
-        email: user.email,
-        role: user.role,
-        token: generateToken(user._id),
-      });
-    } else {
-      res.status(400).json({ message: 'Invalid user data' });
-    }
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-}
+    console.log("User created:", user);
 
+    // Generate token (make sure generateToken function exists)
+    const token = generateToken(user._id);
+
+    res.status(201).json({
+      _id: user._id,
+      FullName: user.FullName,
+      email: user.email,
+      role: user.role,
+      token: token,
+    });
+
+  } catch (error) {
+    console.error("Registration error:", error);
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({ 
+        message: `${field} already exists` 
+      });
+    }
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ 
+        message: messages.join(', ') 
+      });
+    }
+    
+    res.status(500).json({ 
+      message: 'Server error during registration',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
 
 const loginUser = async (req, res) => {
   const { email, password } = req.body;
@@ -74,7 +140,7 @@ const loginUser = async (req, res) => {
     // Return user data (excluding password)
     res.status(200).json({
       _id: user._id,
-      username: user.username,
+      FullName: user.FullName,
       email: user.email,
       role: user.role,
       lastLogin: user.lastLogin,
