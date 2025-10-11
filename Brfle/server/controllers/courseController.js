@@ -57,7 +57,7 @@ const getCourses = async (req, res) => {
     query = query.skip(skip).limit(parseInt(limit));
 
     // Execute query
-    const courses = await query.populate('createdBy', 'username email profile');
+    const courses = await query.populate('createdBy', 'FullName email profile');
     const total = await Course.countDocuments(query.getFilter());
 
     res.json({
@@ -86,8 +86,8 @@ const getCourses = async (req, res) => {
 const getCourse = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .populate('createdBy', 'username email profile')
-      .populate('reviews.user', 'username profile');
+      .populate('createdBy', 'FullName email profile')
+      .populate('reviews.user', 'FullName profile');
 
     if (!course) {
       return res.status(404).json({
@@ -166,7 +166,7 @@ const updateCourse = async (req, res) => {
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate('createdBy', 'username email profile');
+    ).populate('createdBy', 'FullName email profile');
 
     res.json({
       success: true,
