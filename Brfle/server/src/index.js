@@ -41,6 +41,9 @@ app.use((req, res, next) => {
 
 // ==========================
 // Routes
+app.use("/api/hello", (req, res) => {
+  res.send("Hello from the server!");
+});
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 
@@ -65,5 +68,6 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
+  console.log("server is ruuning on url http://localhost:" + PORT);
   console.log(`Server running on port ${PORT}`);
 });
