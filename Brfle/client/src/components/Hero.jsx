@@ -1,110 +1,25 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchCourses } from "../store/slices/courseSlice";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/pagination";
 
-// 🧩 Courses Data
-const courses = [
-  {
-    title: "Well Being and Conscious Life",
-    category: "Personal Development",
-    description:
-      "Develop holistic wellness through mindful living, spiritual growth, and balanced lifestyle practices.",
-    image: "/images/Wellness.jpeg",
-    duration: "6 Weeks",
-    fees: "₹12,000",
-    mode: "Online",
-  },
-  {
-    title: "Holistic Governance and Administration",
-    category: "Leadership",
-    description:
-      "Master the art of ethical leadership and comprehensive administrative practices for modern organizations.",
-    image: "/images/Governor.jpeg",
-    duration: "8 Weeks",
-    fees: "₹15,000",
-    mode: "Hybrid (Online + Workshop)",
-  },
-  {
-    title: "AI",
-    category: "Technology",
-    description:
-      "Explore the fascinating world of AI, machine learning, and their practical applications in various industries.",
-    image: "/images/AI.jpeg",
-    duration: "10 Weeks",
-    fees: "₹18,000",
-    mode: "Online",
-  },
-  {
-    title: "Innovator",
-    category: "Business",
-    description:
-      "Learn to cultivate creativity, problem-solving skills, and innovative thinking for real-world applications.",
-    image: "/images/Innovator.jpeg",
-    duration: "6 Weeks",
-    fees: "₹14,000",
-    mode: "Offline/Online",
-  },
-  {
-    title: "Exporter",
-    category: "Business",
-    description:
-      "Understand international trade, export strategies, and global market opportunities.",
-    image: "/images/exporter.jpeg",
-    duration: "8 Weeks",
-    fees: "₹16,000",
-    mode: "Online",
-  },
-  {
-    title: "Tourism",
-    category: "Industry",
-    description:
-      "Discover the dynamics of tourism industry and learn to create memorable travel experiences.",
-    image: "/images/t1.jpg",
-    duration: "6 Weeks",
-    fees: "₹10,000",
-    mode: "Hybrid",
-  },
-  {
-    title: "Heritage Conservation",
-    category: "Culture & History",
-    description:
-      "Learn to preserve and manage cultural heritage and historical sites.",
-    image: "/images/heritage.jpg",
-    duration: "6 Weeks",
-    fees: "₹12,000",
-    mode: "Online",
-  },
-  {
-    title: "Intelligence Investigator",
-    category: "Security & Investigation",
-    description:
-      "Develop skills in intelligence gathering, investigation techniques, and analytical reasoning.",
-    image: "/images/Intelligence1.jpeg",
-    duration: "8 Weeks",
-    fees: "₹15,000",
-    mode: "Offline/Online",
-  },
-];
-
 // 🧾 Google Form Link
 const googleFormLink =
   "https://docs.google.com/forms/d/e/1FAIpQLSdx2nW8wIvZOHT7k4w8mNzG-Va5e0K7w4URGhhO0G4GwqtUaw/viewform?embedded=true";
 
-// 🎥 Hero Section (Updated with Swiper Slider)
+// 🎥 Hero Section
 const Hero = () => {
-  const images = ["/computer.jpg", "/hills.jpg", "/office.jpg", "/culture.jpg"];
+  const images = ["/h2.jpg", "/business.jpg", "/h3.jpeg", "/earth.jpeg"];
 
   return (
     <section className="relative w-full h-[72vh] md:h-[91vh]">
       <Swiper
         modules={[Pagination, Autoplay]}
         pagination={{ clickable: true }}
-        autoplay={{
-          delay: 3000,
-          disableOnInteraction: false,
-        }}
+        autoplay={{ delay: 3000, disableOnInteraction: false }}
         loop={true}
         className="h-full w-full"
       >
@@ -137,8 +52,15 @@ const Hero = () => {
 
 // 📚 Courses Section
 function Courses({ videoRef }) {
+  const dispatch = useDispatch();
+  const { courses, loading, error } = useSelector((state) => state.courses);
+
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => {
+    dispatch(fetchCourses());
+  }, [dispatch]);
 
   const openModal = (course) => {
     setSelectedCourse(course);
@@ -151,13 +73,27 @@ function Courses({ videoRef }) {
     if (videoRef?.current) videoRef.current.play();
   };
 
-  const allCourses = [...courses, ...courses]; // Duplicate for smooth scrolling
+  // Map backend courses to desired structure
+  const mappedCourses = (courses || []).map((c) => ({
+    title: c.title,
+    category: c.category,
+    description: c.shortDescription || c.description,
+    image: c.images?.[0]?.url || c.thumbnail || "/images/default.jpg",
+    duration: c.totalDurationHours ? `${c.totalDurationHours} hrs` : "N/A",
+    fees: c.formattedPrice || "N/A",
+    mode: "Online",
+  }));
+
+  const allCourses = [...mappedCourses, ...mappedCourses]; // duplicate for smooth scroll
 
   return (
     <section className="py-16 bg-black overflow-hidden">
       <h2 className="text-center text-2xl md:text-3xl font-bold text-white mb-10">
         Select Course
       </h2>
+
+      {loading && <p className="text-center text-white py-10">Loading courses...</p>}
+      {error && <p className="text-center text-red-500 py-10">{error}</p>}
 
       <div className="relative w-full overflow-hidden">
         <div className="flex animate-scroll gap-8">
@@ -203,24 +139,10 @@ function Courses({ videoRef }) {
                 </h2>
 
                 <div className="space-y-4 text-gray-700">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Course Info</h3>
-                    <p className="text-sm">{selectedCourse.description}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Duration</h3>
-                    <p className="text-sm">{selectedCourse.duration}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">
-                      Fees for Admission
-                    </h3>
-                    <p className="text-sm">{selectedCourse.fees}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Mode</h3>
-                    <p className="text-sm">{selectedCourse.mode}</p>
-                  </div>
+                  <p>{selectedCourse.description}</p>
+                  <p><strong>Duration:</strong> {selectedCourse.duration}</p>
+                  <p><strong>Fees:</strong> {selectedCourse.fees}</p>
+                  <p><strong>Mode:</strong> {selectedCourse.mode}</p>
                 </div>
 
                 <div className="mt-6 text-center">
@@ -233,22 +155,13 @@ function Courses({ videoRef }) {
                 </div>
               </>
             ) : (
-              <>
-                <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-                  Enrollment Form
-                </h2>
-                <iframe
-                  src={googleFormLink}
-                  width="100%"
-                  height="600"
-                  frameBorder="0"
-                  marginHeight="0"
-                  marginWidth="0"
-                  title="Google Form"
-                >
-                  Loading…
-                </iframe>
-              </>
+              <iframe
+                src={googleFormLink}
+                width="100%"
+                height="600"
+                frameBorder="0"
+                title="Google Form"
+              />
             )}
           </div>
         </div>
@@ -256,12 +169,8 @@ function Courses({ videoRef }) {
 
       <style jsx>{`
         @keyframes scroll {
-          0% {
-            transform: translateX(0);
-          }
-          100% {
-            transform: translateX(-50%);
-          }
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
         .animate-scroll {
           display: flex;
@@ -287,7 +196,7 @@ function Banner() {
   );
 }
 
-// 🌍 Main Page
+// 🌍 Home Page
 export default function HomePage() {
   const videoRef = useRef(null); // optional, if you add video later
   return (

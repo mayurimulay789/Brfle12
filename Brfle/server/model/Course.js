@@ -212,7 +212,7 @@ const courseSchema = new mongoose.Schema(
     },
     slug: {
       type: String,
-      sparse: true,
+      // REMOVED: sparse: true to avoid auto-index
     },
     analytics: {
       views: {
@@ -468,12 +468,14 @@ courseSchema.query.popular = function() {
 };
 
 // ==================== INDEXES ====================
+// FIXED: Removed duplicate slug index by keeping only the explicit one
+courseSchema.index({ slug: 1 }, { unique: true, sparse: true });
+
 courseSchema.index({ category: 1, level: 1 });
 courseSchema.index({ price: 1 });
 courseSchema.index({ rating: -1 });
 courseSchema.index({ enrollmentCount: -1 });
 courseSchema.index({ isPublished: 1, status: 1 });
-courseSchema.index({ slug: 1 }, { unique: true, sparse: true });
 courseSchema.index({ tags: 1 });
 courseSchema.index({ createdAt: -1 });
 courseSchema.index({ createdBy: 1, isPublished: 1 });

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { logoutUser } from "../store/slices/authSlice";
 
@@ -8,28 +8,19 @@ export default function Navbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const toggleMenu = () => setIsOpen(!isOpen);
   const toggleDropdown = () => setDropdownOpen(!dropdownOpen);
-  
+
   const dispatch = useDispatch();
+  const navigate = useNavigate();
+
   const { user, isAuthenticated } = useSelector((state) => state.auth);
 
-  // ✅ Enhanced debugging
+  // Debugging auth state
   useEffect(() => {
-    console.log("🔍 Navbar Debug - Full auth state:", { user, isAuthenticated });
-    console.log("🔍 User object:", user);
-    console.log("🔍 Is Authenticated:", isAuthenticated);
-    console.log("🔍 User type:", typeof user);
-    console.log("🔍 User properties:", user ? Object.keys(user) : "No user");
-    
-    // Also check localStorage as fallback
-    const storedUser = localStorage.getItem('user');
-    console.log("🔍 LocalStorage user:", storedUser);
+    console.log("Navbar auth state:", { user, isAuthenticated });
   }, [user, isAuthenticated]);
 
-  // ✅ Correct user display name function
   const getUserDisplayName = () => {
     if (!user) return 'User';
-    
-    // Use the correct field name: FullName (capital F)
     return user.FullName || user.email || 'User';
   };
 
@@ -37,6 +28,9 @@ export default function Navbar() {
     dispatch(logoutUser());
     setDropdownOpen(false);
     setIsOpen(false);
+
+    // Redirect to login page
+    navigate("/login");
   };
 
   const menuItems = [
@@ -74,20 +68,19 @@ export default function Navbar() {
               {item.name}
             </Link>
           ))}
-          
-          {/* ✅ Fixed Auth Section with correct field names */}
+
           {isAuthenticated ? (
             <div className="relative">
               <button
                 onClick={toggleDropdown}
                 className="hover:text-gray-300 transition-colors text-white border border-white rounded px-3 py-1 text-sm flex items-center"
               >
-                {getUserDisplayName()} {/* ✅ Now uses correct field */}
+                {getUserDisplayName()}
                 <svg className="ml-1 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              
+
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
                   <Link
@@ -97,8 +90,7 @@ export default function Navbar() {
                   >
                     Dashboard
                   </Link>
-                  
-                  {/* ✅ Show panels based on user role */}
+
                   {user?.role === 'admin' && (
                     <Link
                       to="/admin-panel"
@@ -108,7 +100,7 @@ export default function Navbar() {
                       Admin Panel
                     </Link>
                   )}
-                  
+
                   {user?.role === 'instructor' && (
                     <Link
                       to="/instructor-panel"
@@ -118,7 +110,7 @@ export default function Navbar() {
                       Instructor Panel
                     </Link>
                   )}
-                  
+
                   <Link
                     to="/my-courses"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
@@ -126,7 +118,7 @@ export default function Navbar() {
                   >
                     My Courses
                   </Link>
-                  
+
                   <Link
                     to="/certificates"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
@@ -134,7 +126,7 @@ export default function Navbar() {
                   >
                     Certificates
                   </Link>
-                  
+
                   <Link
                     to="/profile"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
@@ -142,7 +134,7 @@ export default function Navbar() {
                   >
                     Profile
                   </Link>
-                  
+
                   <button
                     onClick={handleLogout}
                     className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 font-medium"
@@ -199,83 +191,25 @@ export default function Navbar() {
               {item.name}
             </Link>
           ))}
-          
-          {/* ✅ Mobile Auth Section with correct field names */}
+
           <div className="pt-4 border-t border-gray-700">
             {isAuthenticated ? (
               <div className="space-y-3">
                 <div className="text-amber-400 text-sm">
-                  Welcome, {getUserDisplayName()} {/* ✅ Now uses correct field */}
+                  Welcome, {getUserDisplayName()}
                 </div>
-                <Link
-                  to="/dashboard"
-                  className="block hover:text-gray-300 transition-colors text-white py-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Dashboard
-                </Link>
-                {user?.role === 'admin' && (
-                  <Link
-                    to="/admin-panel"
-                    className="block hover:text-gray-300 transition-colors text-white py-2"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Admin Panel
-                  </Link>
-                )}
-                {user?.role === 'instructor' && (
-                  <Link
-                    to="/instructor-panel"
-                    className="block hover:text-gray-300 transition-colors text-white py-2"
-                    onClick={() => setIsOpen(false)}
-                  >
-                    Instructor Panel
-                  </Link>
-                )}
-                <Link
-                  to="/my-courses"
-                  className="block hover:text-gray-300 transition-colors text-white py-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  My Courses
-                </Link>
-                <Link
-                  to="/certificates"
-                  className="block hover:text-gray-300 transition-colors text-white py-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Certificates
-                </Link>
-                <Link
-                  to="/profile"
-                  className="block hover:text-gray-300 transition-colors text-white py-2"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Profile
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-left text-red-400 hover:text-red-300 py-2 font-medium"
-                >
-                  Logout
-                </button>
+                <Link to="/dashboard" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>Dashboard</Link>
+                {user?.role === 'admin' && <Link to="/admin-panel" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>Admin Panel</Link>}
+                {user?.role === 'instructor' && <Link to="/instructor-panel" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>Instructor Panel</Link>}
+                <Link to="/my-courses" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>My Courses</Link>
+                <Link to="/certificates" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>Certificates</Link>
+                <Link to="/profile" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>Profile</Link>
+                <button onClick={handleLogout} className="block w-full text-left text-red-400 hover:text-red-300 py-2 font-medium">Logout</button>
               </div>
             ) : (
               <div className="flex space-x-4 pt-2">
-                <Link
-                  to="/login"
-                  className="flex-1 text-center bg-amber-500 hover:bg-amber-600 text-white py-2 rounded text-sm"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/register"
-                  className="flex-1 text-center bg-amber-500 hover:bg-amber-600 text-white py-2 rounded text-sm"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Register
-                </Link>
+                <Link to="/login" className="flex-1 text-center bg-amber-500 hover:bg-amber-600 text-white py-2 rounded text-sm" onClick={() => setIsOpen(false)}>Login</Link>
+                <Link to="/register" className="flex-1 text-center bg-amber-500 hover:bg-amber-600 text-white py-2 rounded text-sm" onClick={() => setIsOpen(false)}>Register</Link>
               </div>
             )}
           </div>
