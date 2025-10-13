@@ -9,6 +9,8 @@ import Footer from "./components/Footer.jsx";
 import Hero from "./components/Hero.jsx";
 import About from "./pages/about.jsx";
 import Courses from "./pages/courses.jsx";
+import CourseDetail from "./pages/CourseDetail";
+import Checkout from './pages/Checkout';
 import Features from "./pages/features.jsx";
 import GlobalPresence from "./pages/globalpresence.jsx";
 import Services from "./pages/services.jsx";
@@ -67,6 +69,8 @@ function AppContent() {
           <Route path="/services" element={<Services />} />
           <Route path="/globalpresence" element={<GlobalPresence />} />
           <Route path="/courses" element={<Courses />} />
+          <Route path="/courses/:id" element={<CourseDetail />} />
+          <Route path="/checkout/:id" element={<Checkout />} />
           <Route path="/register" element={<RegistrationForm />} />
           <Route path="/login" element={<LoginForm />} />
           
