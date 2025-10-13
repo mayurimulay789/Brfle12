@@ -15,6 +15,7 @@ import Services from "./pages/services.jsx";
 import RegistrationForm from "./components/RegistrationForm.jsx";
 import LoginForm from "./components/LoginForm.jsx";
 import Dashboard from "./components/Dashboard.jsx";
+import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 
 // Home Component
@@ -75,7 +76,8 @@ function AppContent() {
             path="/admin-panel" 
             element={
               <ProtectedRoute>
-                <Dashboard />
+                {/* <Dashboard /> */}
+                <AdminDashboardPage />
               </ProtectedRoute>
             } 
           />

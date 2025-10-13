@@ -6,7 +6,7 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [editingUser, setEditingUser] = useState(null);
-  const [editForm, setEditForm] = useState({ username: '', email: '', role: '' });
+  const [editForm, setEditForm] = useState({ FullName: '', email: '', role: '' });
 
   const { token, user } = useSelector((state) => state.auth);
 
@@ -40,7 +40,7 @@ const AdminPanel = () => {
 
   const handleEdit = (user) => {
     setEditingUser(user);
-    setEditForm({ username: user.username, email: user.email, role: user.role });
+    setEditForm({ FullName: user.FullName, email: user.email, role: user.role });
   };
 
   const handleUpdate = async () => {
@@ -91,7 +91,7 @@ const AdminPanel = () => {
       <table className="w-full table-auto border-collapse border border-gray-300">
         <thead>
           <tr className="bg-gray-100">
-            <th className="border border-gray-300 px-4 py-2">Username</th>
+            <th className="border border-gray-300 px-4 py-2">FullName</th>
             <th className="border border-gray-300 px-4 py-2">Email</th>
             <th className="border border-gray-300 px-4 py-2">Role</th>
             <th className="border border-gray-300 px-4 py-2">Actions</th>
@@ -100,7 +100,7 @@ const AdminPanel = () => {
         <tbody>
           {users.map((u) => (
             <tr key={u._id}>
-              <td className="border border-gray-300 px-4 py-2">{u.username}</td>
+              <td className="border border-gray-300 px-4 py-2">{u.FullName}</td>
               <td className="border border-gray-300 px-4 py-2">{u.email}</td>
               <td className="border border-gray-300 px-4 py-2">{u.role}</td>
               <td className="border border-gray-300 px-4 py-2">
@@ -135,9 +135,9 @@ const AdminPanel = () => {
             <h2 className="text-xl mb-4">Edit User</h2>
             <input
               type="text"
-              placeholder="Username"
-              value={editForm.username}
-              onChange={(e) => setEditForm({ ...editForm, username: e.target.value })}
+              placeholder="FullName"
+              value={editForm.FullName}
+              onChange={(e) => setEditForm({ ...editForm, FullName: e.target.value })}
               className="block w-full mb-2 p-2 border"
             />
             <input

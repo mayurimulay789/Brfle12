@@ -5,16 +5,18 @@ const {
   getAllUsers,
   getUserById,
   updatedUser,
-  deleteUser
+  deleteUser,
+  getAllCourses,
+  getSingleCourse,
+  createCourse,
+  updateCourse,
+  deleteCourse,
+  updateCourseStatus,
+  recalculateCourseDuration
+
 } = require('../controllers/adminController');
 
-const {
-  getCourses,
-  createCourse,
-  getCourse,
-  updateCourse,
-  deleteCourse
-} = require('../controllers/courseController');
+
 
 const router = express.Router();
 
@@ -24,15 +26,18 @@ router.use(admin);
 
 // Specific routes first
 router.get('/users', getAllUsers);
-router.put('/users/:id', updatedUser);    // PUT before GET with params
+router.put('/users/:id/role', updatedUser);    // PUT before GET with params
 router.delete('/users/:id', deleteUser);  // DELETE before GET with params
 router.get('/users/:id', getUserById); 
 
-// for courses management
-router.get('/courses', getCourses);
+//course routes
+router.get('/courses', getAllCourses);
 router.post('/courses', createCourse);
-router.put('/courses/:id', updateCourse);    // PUT before GET with params
-router.delete('/courses/:id', deleteCourse);  // DELETE before GET with params
-router.get('/courses/:id', getCourse);
+// router.get('/courses/:id', getSingleCourse);
+router.put('/courses/:id', updateCourse);
+router.delete('/courses/:id', deleteCourse);
+router.patch('/courses/:id/status', updateCourseStatus);
+router.post('/courses/:id/recalculate-duration', recalculateCourseDuration);
+
 
 module.exports = router;
