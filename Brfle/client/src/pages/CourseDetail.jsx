@@ -184,7 +184,7 @@ export default function CourseDetail() {
                 </div>
               </div>
             </div>
-          </div>
+          </div> 
 
           {/* =================== SIDEBAR =================== */}
           <div className="lg:col-span-1">

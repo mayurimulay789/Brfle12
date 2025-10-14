@@ -1,411 +1,7 @@
-// const Enrollment = require("../model/Enrollment");
-// const Course = require("../model/Course");
-// const mongoose = require("mongoose");
-
-// // ✅ POST /api/enrollments - Enroll a user to a course
-// const enrollUser = async (req, res) => {
-//   try {
-//     const { courseId } = req.body;
-//     const userId = req.user.id;
-
-//     if (!courseId) {
-//       return res.status(400).json({ message: "Course ID is required" });
-//     }
-
-//     // Check if course exists
-//     const course = await Course.findById(courseId);
-//     if (!course) {
-//       return res.status(404).json({ message: "Course not found" });
-//     }
-
-//     // Check if already enrolled
-//     const existingEnrollment = await Enrollment.findOne({
-//       user: userId,
-//       course: courseId,
-//     });
-//     if (existingEnrollment) {
-//       return res.status(400).json({ message: "You are already enrolled in this course" });
-//     }
-
-//     // Create new enrollment
-//     const enrollment = new Enrollment({
-//       user: userId,
-//       course: courseId,
-//       progress: {
-//         completedLessons: [],
-//         totalLessons: course.lessons ? course.lessons.length : 0, // safe check
-//         completionPercentage: 0,
-//         lastAccessedAt: null,
-//       },
-//       certificate: {
-//         issued: false,
-//         issuedAt: null,
-//         certificateId: null,
-//       },
-//       status: "in-progress", // must exist in schema enum
-//       enrolledAt: new Date(),
-//     });
-
-//     await enrollment.save();
-
-//     res.status(201).json({
-//       message: "Enrolled successfully!",
-//       enrollmentId: enrollment._id,
-//       courseId: course._id,
-//     });
-//   } catch (error) {
-//     console.error("Enrollment error:", error);
-//     res.status(500).json({ message: "Failed to enroll in course", error: error.message });
-//   }
-// };
-
-// // ✅ GET /api/enrollments/me - Get all user enrollments
-// const getUserEnrollments = async (req, res) => {
-//   try {
-//     const userId = req.user.id;
-
-//     const enrollments = await Enrollment.find({ user: userId })
-//       .populate("course", "title description instructor thumbnail duration level reviewCount avgRating")
-//       .populate("payment", "amount createdAt")
-//       .sort({ enrolledAt: -1 });
-
-//     res.json(enrollments);
-//   } catch (error) {
-//     console.error("Error fetching enrollments:", error);
-//     res.status(500).json({ message: "Failed to fetch enrollments" });
-//   }
-// };
-
-// // ✅ GET /api/enrollments/:courseId - Get a specific enrollment
-// const getEnrollmentByCourse = async (req, res) => {
-//   try {
-//     const { courseId } = req.params;
-//     const userId = req.user.id;
-
-//     const enrollment = await Enrollment.findOne({
-//       user: userId,
-//       course: courseId,
-//       status: "active"
-//     })
-//       .populate("course")
-//       .populate("payment");
-
-//     if (!enrollment) {
-//       return res.status(404).json({ message: "Enrollment not found" });
-//     }
-
-//     res.json(enrollment);
-//   } catch (error) {
-//     console.error("Error fetching enrollment:", error);
-//     res.status(500).json({ message: "Failed to fetch enrollment" });
-//   }
-// };
-
-// // ✅ POST /api/enrollments/progress - Update course progress
-// const updateProgress = async (req, res) => {
-//   try {
-//     const { courseId, lessonId, timeSpent } = req.body;
-//     const userId = req.user.id;
-
-//     const enrollment = await Enrollment.findOne({
-//       user: userId,
-//       course: courseId,
-//     });
-
-//     if (!enrollment) {
-//       return res.status(404).json({ message: "Enrollment not found" });
-//     }
-
-//     // Initialize progress if not exists (for legacy enrollments)
-//     if (!enrollment.progress) {
-//       const course = await Course.findById(courseId);
-//       enrollment.progress = {
-//         completedLessons: [],
-//         totalLessons: course ? course.lessons.length : 0,
-//         completionPercentage: 0,
-//         lastAccessedAt: new Date(),
-//       };
-//     }
-
-//     // Always update totalLessons to current course lessons count
-//     const course = await Course.findById(courseId);
-//     enrollment.progress.totalLessons = course ? course.lessons.length : 0;
-
-//     // Check if lesson is already completed
-//     const existingLesson = enrollment.progress.completedLessons.find(
-//       (lesson) => lesson.lessonId === lessonId
-//     );
-
-//     if (!existingLesson) {
-//       // Add new completed lesson
-//       enrollment.progress.completedLessons.push({
-//         lessonId,
-//         completedAt: new Date(),
-//       });
-
-//       // Update completion percentage
-//       enrollment.progress.completionPercentage = Math.round(
-//         (enrollment.progress.completedLessons.length / enrollment.progress.totalLessons) * 100
-//       );
-//     }
-
-//     // Update last accessed only, remove timeSpent tracking
-//     enrollment.progress.lastAccessedAt = new Date();
-
-//     // Check if course is completed and trigger certificate generation
-//     if (enrollment.progress.completionPercentage >= 100 && !enrollment.certificate.issued) {
-//       try {
-//         const certificateService = require("../services/certificateService");
-//         const User = require("../models/User");
-
-//         const user = await User.findById(userId);
-//         const course = await Course.findById(courseId);
-
-//         // Remove hoursCompleted calculation based on timeSpent
-//         const hoursCompleted = 0;
-
-//         const skillsMap = {
-//           Programming: ["Problem Solving", "Code Development", "Debugging", "Software Architecture"],
-//           Design: ["Visual Design", "User Experience", "Prototyping", "Design Thinking"],
-//           Marketing: ["Digital Strategy", "Analytics", "Campaign Management", "Brand Development"],
-//           Business: ["Strategic Planning", "Leadership", "Project Management", "Business Analysis"],
-//           Creative: ["Creative Thinking", "Visual Communication", "Artistic Expression", "Media Production"],
-//         };
-//         const skills = skillsMap[course.category] || [
-//           "Professional Development",
-//           "Continuous Learning",
-//         ];
-
-//         // Generate certificate automatically
-//         const certificate = await certificateService.generateCertificate({
-//           user,
-//           course,
-//           enrollment,
-//           studentName: user.name,
-//           courseName: course.title,
-//           instructor: course.instructor,
-//           completionDate: new Date(),
-//           finalScore: 85,
-//           hoursCompleted,
-//           skills,
-//           metadata: {
-//             autoGenerated: true,
-//             triggeredBy: "progress_completion",
-//           },
-//         });
-
-//         // Update enrollment with certificate info
-//         enrollment.certificate.issued = true;
-//         enrollment.certificate.issuedAt = certificate.issueDate;
-//         enrollment.certificate.certificateId = certificate.certificateId;
-//         enrollment.status = "completed";
-//       } catch (error) {
-//         console.error("Auto certificate generation error:", error);
-//       }
-//     }
-
-//     await enrollment.save();
-
-//     res.json({
-//       message: "Progress updated successfully",
-//       progress: enrollment.progress,
-//       certificate: enrollment.certificate,
-//     });
-//   } catch (error) {
-//     console.error("Error updating progress:", error);
-//     res.status(500).json({ message: "Failed to update progress" });
-//   }
-// };
-
-// // ✅ GET /api/enrollments/progress/:courseId - Get progress of specific course
-// const getProgress = async (req, res) => {
-//   try {
-//     const { courseId } = req.params;
-//     const userId = req.user.id;
-
-//     if (!mongoose.Types.ObjectId.isValid(courseId)) {
-//       console.warn(`Invalid course ID received: ${courseId}`);
-//       return res.status(400).json({ message: "Invalid course ID" });
-//     }
-
-//     const enrollment = await Enrollment.findOne({
-//       user: userId,
-//       course: courseId,
-//     });
-
-//     if (!enrollment) {
-//       return res.status(404).json({ message: "Enrollment not found" });
-//     }
-
-//     // Initialize progress if not exists (for legacy enrollments)
-//     if (!enrollment.progress) {
-//       const course = await Course.findById(courseId);
-//       if (enrollment.status === "completed") {
-//         // For legacy completed enrollments, mark all lessons as complete
-//         const allCompletedLessons = course.lessons.map(lesson => ({
-//           lessonId: lesson._id,
-//           completedAt: enrollment.enrolledAt || new Date(),
-//         }));
-//         enrollment.progress = {
-//           completedLessons: allCompletedLessons,
-//           totalLessons: course.lessons.length,
-//           completionPercentage: 100,
-//           timeSpent: 0, // Could estimate or leave as 0
-//           lastAccessedAt: new Date(),
-//         };
-
-//         // Auto-generate certificate if not issued
-//         if (!enrollment.certificate.issued) {
-//           try {
-//             const certificateService = require("../services/certificateService");
-//             const User = require("../models/User");
-
-//             const user = await User.findById(userId);
-//             const hoursCompleted = 10; // Default for legacy
-
-//             const skillsMap = {
-//               Programming: ["Problem Solving", "Code Development", "Debugging", "Software Architecture"],
-//               Design: ["Visual Design", "User Experience", "Prototyping", "Design Thinking"],
-//               Marketing: ["Digital Strategy", "Analytics", "Campaign Management", "Brand Development"],
-//               Business: ["Strategic Planning", "Leadership", "Project Management", "Business Analysis"],
-//               Creative: ["Creative Thinking", "Visual Communication", "Artistic Expression", "Media Production"],
-//             };
-//             const skills = skillsMap[course.category] || ["Professional Development", "Continuous Learning"];
-
-//             const certificate = await certificateService.generateCertificate({
-//               user,
-//               course,
-//               enrollment,
-//               studentName: user.name,
-//               courseName: course.title,
-//               instructor: course.instructor,
-//               completionDate: enrollment.enrolledAt || new Date(),
-//               finalScore: 85,
-//               hoursCompleted,
-//               skills,
-//               metadata: {
-//                 autoGenerated: true,
-//                 triggeredBy: "legacy_completion",
-//               },
-//             });
-
-//             enrollment.certificate.issued = true;
-//             enrollment.certificate.issuedAt = certificate.issueDate;
-//             enrollment.certificate.certificateId = certificate.certificateId;
-//           } catch (error) {
-//             console.error("Auto certificate generation for legacy error:", error);
-//           }
-//         }
-//       } else {
-//         enrollment.progress = {
-//           completedLessons: [],
-//           totalLessons: course ? course.lessons.length : 0,
-//           completionPercentage: 0,
-//           timeSpent: 0,
-//           lastAccessedAt: new Date(),
-//         };
-//       }
-//       await enrollment.save();
-//     }
-
-//     // Fix progress inconsistency: if certificate is issued but progress < 100%, set to 100%
-//     if (enrollment.certificate.issued && enrollment.progress.completionPercentage < 100) {
-//       const course = await Course.findById(courseId);
-//       enrollment.progress.completedLessons = course.lessons.map(lesson => ({
-//         lessonId: lesson._id.toString(),
-//         completedAt: enrollment.certificate.issuedAt || new Date(),
-//       }));
-//       enrollment.progress.totalLessons = course.lessons.length;
-//       enrollment.progress.completionPercentage = 100;
-//       enrollment.status = "completed";
-//       await enrollment.save();
-//     }
-
-//     res.json({
-//       progress: enrollment.progress,
-//       certificate: enrollment.certificate,
-//       enrolledAt: enrollment.enrolledAt,
-//       status: enrollment.status,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching progress:", error);
-//     res.status(500).json({ message: "Failed to fetch progress" });
-//   }
-// };
-
-// // DEV ROUTE: force issue a certificate for a course
-// const forceCertificate = async (req, res) => {
-//   try {
-//     const { courseId } = req.params;
-//     const enrollment = await Enrollment.findOne({
-//       user: req.user.id,
-//       course: courseId
-//     });
-
-//     if (!enrollment) {
-//       return res.status(404).json({ message: "Enrollment not found" });
-//     }
-
-//     // Mark certificate issued
-//     enrollment.certificate.issued = true;
-//     enrollment.certificate.issuedAt = new Date();
-//     enrollment.certificate.certificateId = "FORCED_CERT_" + Date.now();
-//     enrollment.status = "completed";
-
-//     await enrollment.save();
-
-//     res.json({
-//       message: "Certificate issued manually",
-//       certificate: enrollment.certificate
-//     });
-//   } catch (err) {
-//     console.error("Force certificate error:", err);
-//     res.status(500).json({ message: "Failed to issue certificate" });
-//   }
-// };
-
-// // ✅ GET /api/enrollments/certificates/me - Get all user certificates
-// const getUserCertificates = async (req, res) => {
-//   try {
-//     const userId = req.user.id;
-
-//     const enrollments = await Enrollment.find({
-//       user: userId,
-//       "certificate.issued": true,
-//     })
-//       .populate("course", "title instructor")
-//       .select("certificate course");
-
-//     const certificates = enrollments.map((enrollment) => ({
-//       _id: enrollment._id,
-//       certificateId: enrollment.certificate.certificateId,
-//       courseName: enrollment.course.title,
-//       instructor: enrollment.course.instructor,
-//       issuedAt: enrollment.certificate.issuedAt,
-//       courseId: enrollment.course._id,
-//     }));
-
-//     res.json(certificates);
-//   } catch (error) {
-//     console.error("Error fetching certificates:", error);
-//     res.status(500).json({ message: "Failed to fetch certificates" });
-//   }
-// };
-
-// module.exports = {
-//   enrollUser,
-//   getUserEnrollments,
-//   getEnrollmentByCourse,
-//   updateProgress,
-//   getProgress,
-//   forceCertificate,
-//   getUserCertificates
-// };
-
-
 const Enrollment = require('../model/Enrollment');
 const Course = require('../model/Course');
 const Lesson = require('../model/Lesson');
+const Payment = require('../model/Payment');
 
 // @desc    Enroll in a course
 // @route   POST /api/enrollments/courses/:courseId
@@ -438,6 +34,24 @@ exports.enrollInCourse = async (req, res) => {
         success: false,
         message: 'You are already enrolled in this course'
       });
+    }
+
+    // For paid courses, check if payment was made
+    if (course.price > 0) {
+      const successfulPayment = await Payment.findOne({
+        student: req.user.id,
+        course: courseId,
+        status: 'captured'
+      });
+
+      if (!successfulPayment) {
+        return res.status(402).json({
+          success: false,
+          message: 'Payment required to enroll in this course',
+          requiresPayment: true,
+          coursePrice: course.price
+        });
+      }
     }
 
     // Create enrollment
@@ -476,7 +90,7 @@ exports.getMyEnrollments = async (req, res) => {
     })
     .populate({
       path: 'course',
-      select: 'courseTitle courseImage courseSummary duration price category difficulty averageRating totalStudents',
+      select: 'courseTitle courseImage courseSummary duration price category difficulty averageRating totalStudents isActive',
       populate: {
         path: 'createdBy',
         select: 'name'
@@ -487,6 +101,15 @@ exports.getMyEnrollments = async (req, res) => {
     // Calculate progress for each enrollment
     const enrollmentsWithProgress = await Promise.all(
       enrollments.map(async (enrollment) => {
+        // Skip if course is not found or inactive
+        if (!enrollment.course) {
+          enrollment.course = { 
+            courseTitle: 'Course Not Available',
+            isActive: false 
+          };
+          return enrollment;
+        }
+
         const totalLessons = await Lesson.countDocuments({ 
           course: enrollment.course._id, 
           isActive: true 
@@ -524,13 +147,21 @@ exports.getEnrollmentStatus = async (req, res) => {
       student: req.user.id,
       course: courseId
     })
-    .populate('course', 'courseTitle courseImage duration totalLessons')
+    .populate('course', 'courseTitle courseImage duration totalLessons isActive')
     .populate('completedLessons.lesson', 'lessonTitle order duration');
 
     if (!enrollment) {
       return res.status(404).json({
         success: false,
         message: 'Not enrolled in this course'
+      });
+    }
+
+    // Check if course is still active
+    if (!enrollment.course.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'This course is no longer available'
       });
     }
 
@@ -787,12 +418,20 @@ exports.getCertificate = async (req, res) => {
     const enrollment = await Enrollment.findOne({
       student: req.user.id,
       course: courseId
-    }).populate('course', 'courseTitle certificate requirements');
+    }).populate('course', 'courseTitle certificate requirements isActive');
 
     if (!enrollment) {
       return res.status(404).json({
         success: false,
         message: 'Enrollment not found'
+      });
+    }
+
+    // Check if course is active
+    if (!enrollment.course.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: 'Course is no longer available'
       });
     }
 
@@ -805,7 +444,7 @@ exports.getCertificate = async (req, res) => {
 
     // Check if user passed the MCQ test (if exists)
     const course = await Course.findById(courseId);
-    if (course.mcqTest) {
+    if (course && course.mcqTest) {
       const studentAttempts = course.testAttempts.filter(
         attempt => attempt.student.toString() === req.user.id
       );
@@ -853,18 +492,9 @@ exports.getEnrollmentAnalytics = async (req, res) => {
     
     const popularCourses = await Enrollment.aggregate([
       {
-        $group: {
-          _id: '$course',
-          enrollmentCount: { $sum: 1 },
-          completedCount: {
-            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
-          }
-        }
-      },
-      {
         $lookup: {
           from: 'courses',
-          localField: '_id',
+          localField: 'course',
           foreignField: '_id',
           as: 'course'
         }
@@ -873,8 +503,23 @@ exports.getEnrollmentAnalytics = async (req, res) => {
         $unwind: '$course'
       },
       {
+        $match: {
+          'course.isActive': true
+        }
+      },
+      {
+        $group: {
+          _id: '$course._id',
+          enrollmentCount: { $sum: 1 },
+          completedCount: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          },
+          courseTitle: { $first: '$course.courseTitle' }
+        }
+      },
+      {
         $project: {
-          courseTitle: '$course.courseTitle',
+          courseTitle: 1,
           enrollmentCount: 1,
           completedCount: 1,
           completionRate: {
@@ -919,6 +564,15 @@ exports.getEnrollmentAnalytics = async (req, res) => {
 exports.getCourseEnrollments = async (req, res) => {
   try {
     const { courseId } = req.params;
+
+    // Check if course exists
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
+    }
 
     const enrollments = await Enrollment.find({ course: courseId })
       .populate('student', 'name email profilePicture')

@@ -58,7 +58,6 @@
 
 // export default enrollmentAPI;
 
-
 import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api/enrollments';
@@ -81,19 +80,19 @@ api.interceptors.request.use(
 );
 
 const enrollmentAPI = {
-  // Enroll in course
+  // Enroll in a course
   enrollInCourse: async (courseId) => {
     const response = await api.post(`/courses/${courseId}`);
     return response;
   },
 
-  // Get my enrollments
+  // Get user's enrollments
   getMyEnrollments: async () => {
     const response = await api.get('/my-courses');
     return response;
   },
 
-  // Get enrollment status
+  // Get enrollment status for a course
   getEnrollmentStatus: async (courseId) => {
     const response = await api.get(`/courses/${courseId}`);
     return response;
@@ -128,6 +127,18 @@ const enrollmentAPI = {
     const response = await api.get(`/courses/${courseId}/certificate`);
     return response;
   },
+
+  // Admin - Get enrollment analytics
+  getEnrollmentAnalytics: async () => {
+    const response = await api.get('/admin/analytics');
+    return response;
+  },
+
+  // Admin - Get course enrollments
+  getCourseEnrollments: async (courseId) => {
+    const response = await api.get(`/admin/courses/${courseId}/enrollments`);
+    return response;
+  }
 };
 
 export default enrollmentAPI;

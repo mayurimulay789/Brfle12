@@ -1,81 +1,3 @@
-// const Razorpay = require("razorpay");
-// const crypto = require("crypto");
-// const Payment = require("../model/Payment");
-// const Course = require("../model/Course");
-
-// const razorpay = new Razorpay({
-//   key_id: process.env.RAZORPAY_KEY_ID,
-//   key_secret: process.env.RAZORPAY_KEY_SECRET,
-// });
-
-// // ✅ Create Order
-// exports.createOrder = async (req, res) => {
-//   try {
-//     const { courseId, userId } = req.body;
-
-//     if (!courseId || !userId)
-//       return res.status(400).json({ message: "courseId and userId are required" });
-
-//     const course = await Course.findById(courseId);
-//     if (!course) return res.status(404).json({ message: "Course not found" });
-
-//     const options = {
-//       amount: course.fees * 100, // paise
-//       currency: "INR",
-//       receipt: `rcpt_${Date.now()}`,
-//     };
-
-//     const order = await razorpay.orders.create(options);
-
-//     const payment = new Payment({
-//       user: userId,
-//       course: courseId,
-//       razorpay_order_id: order.id,
-//       amount: course.fees,
-//       status: "pending",
-//     });
-//     await payment.save();
-
-//     console.log("✅ Order Created:", order);
-//     res.status(201).json(order);
-//   } catch (error) {
-//     console.error("❌ Error creating order:", error);
-//     res.status(500).json({ message: "Failed to create order" });
-//   }
-// };
-
-// // ✅ Verify Payment
-// exports.verifyPayment = async (req, res) => {
-//   try {
-//     const { razorpay_payment_id, razorpay_order_id, razorpay_signature } = req.body;
-//     const body = razorpay_order_id + "|" + razorpay_payment_id;
-
-//     const expectedSignature = crypto
-//       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
-//       .update(body)
-//       .digest("hex");
-
-//     if (expectedSignature === razorpay_signature) {
-//       const payment = await Payment.findOne({ razorpay_order_id });
-//       if (payment) {
-//         payment.razorpay_payment_id = razorpay_payment_id;
-//         payment.razorpay_signature = razorpay_signature;
-//         payment.status = "completed";
-//         await payment.save();
-//       }
-//       console.log("✅ Payment Verified");
-//       return res.json({ success: true, message: "Payment verified successfully" });
-//     } else {
-//       console.log("❌ Invalid signature");
-//       return res.json({ success: false, message: "Invalid signature" });
-//     }
-//   } catch (error) {
-//     console.error("❌ Verification failed:", error);
-//     res.status(500).json({ success: false, message: "Verification failed" });
-//   }
-// };
-
-
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const Course = require('../model/Course');
@@ -95,7 +17,15 @@ exports.createOrder = async (req, res) => {
   try {
     const { courseId } = req.body;
 
-    // Validate course
+    // Validate required fields
+    if (!courseId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Course ID is required'
+      });
+    }
+
+    // Validate course exists and is active
     const course = await Course.findOne({ 
       _id: courseId, 
       isActive: true 
@@ -104,11 +34,11 @@ exports.createOrder = async (req, res) => {
     if (!course) {
       return res.status(404).json({
         success: false,
-        message: 'Course not found'
+        message: 'Course not found or not active'
       });
     }
 
-    // Check if already enrolled
+    // Check if already enrolled (additional safety check)
     const existingEnrollment = await Enrollment.findOne({
       student: req.user.id,
       course: courseId
@@ -119,6 +49,39 @@ exports.createOrder = async (req, res) => {
         success: false,
         message: 'You are already enrolled in this course'
       });
+    }
+
+    // Check for existing pending payment for same course
+    const existingPayment = await Payment.findOne({
+      student: req.user.id,
+      course: courseId,
+      status: { $in: ['created', 'captured'] }
+    });
+
+    if (existingPayment) {
+      if (existingPayment.status === 'captured') {
+        return res.status(400).json({
+          success: false,
+          message: 'You are already enrolled in this course'
+        });
+      } else {
+        // Return existing order if payment is still pending
+        return res.json({
+          success: true,
+          order: {
+            id: existingPayment.orderId,
+            amount: Math.round(existingPayment.amount * 100),
+            currency: existingPayment.currency,
+            receipt: `receipt_${existingPayment._id}`
+          },
+          key: process.env.RAZORPAY_KEY_ID,
+          course: {
+            title: course.courseTitle,
+            price: course.price
+          },
+          existingOrder: true
+        });
+      }
     }
 
     // Create order options
@@ -160,9 +123,11 @@ exports.createOrder = async (req, res) => {
       course: {
         title: course.courseTitle,
         price: course.price
-      }
+      },
+      existingOrder: false
     });
   } catch (error) {
+    console.error('Create order error:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating payment order',
@@ -182,6 +147,14 @@ exports.verifyPayment = async (req, res) => {
       razorpay_signature
     } = req.body;
 
+    // Validate required fields
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing payment verification data'
+      });
+    }
+
     // Verify payment signature
     const body = razorpay_order_id + "|" + razorpay_payment_id;
     const expectedSignature = crypto
@@ -192,11 +165,11 @@ exports.verifyPayment = async (req, res) => {
     if (expectedSignature !== razorpay_signature) {
       return res.status(400).json({
         success: false,
-        message: 'Payment verification failed'
+        message: 'Payment verification failed - Invalid signature'
       });
     }
 
-    // Find payment record
+    // Find payment record with course population
     const payment = await Payment.findOne({ orderId: razorpay_order_id })
       .populate('course')
       .populate('student');
@@ -210,9 +183,93 @@ exports.verifyPayment = async (req, res) => {
 
     // Check if payment is already captured
     if (payment.status === 'captured') {
+      // Check if enrollment already exists
+      const existingEnrollment = await Enrollment.findOne({
+        student: payment.student._id,
+        course: payment.course._id
+      });
+
+      if (existingEnrollment) {
+        return res.json({
+          success: true,
+          message: 'Payment already processed and enrollment exists',
+          payment: {
+            id: payment._id,
+            amount: payment.amount,
+            course: payment.course.courseTitle,
+            paymentId: payment.paymentId,
+            paidAt: payment.paidAt
+          },
+          enrollment: {
+            id: existingEnrollment._id,
+            enrolledAt: existingEnrollment.enrolledAt
+          },
+          alreadyProcessed: true
+        });
+      } else {
+        // Create enrollment if it doesn't exist
+        return await createEnrollmentAndRespond(payment, res);
+      }
+    }
+
+    // Additional safety check: Verify course still exists and is active
+    if (!payment.course) {
+      await Payment.findByIdAndUpdate(payment._id, {
+        status: 'failed',
+        error: {
+          reason: 'Course not found during verification'
+        }
+      });
+
       return res.status(400).json({
         success: false,
-        message: 'Payment already processed'
+        message: 'Course not found. Please contact support for refund.'
+      });
+    }
+
+    if (!payment.course.isActive) {
+      await Payment.findByIdAndUpdate(payment._id, {
+        status: 'failed',
+        error: {
+          reason: 'Course is no longer active'
+        }
+      });
+
+      return res.status(400).json({
+        success: false,
+        message: 'Course is no longer available. Please contact support for refund.'
+      });
+    }
+
+    // Final safety check: Ensure user is not already enrolled
+    const existingEnrollmentCheck = await Enrollment.findOne({
+      student: payment.student._id,
+      course: payment.course._id
+    });
+
+    if (existingEnrollmentCheck) {
+      // Update payment as captured but don't create new enrollment
+      payment.paymentId = razorpay_payment_id;
+      payment.signature = razorpay_signature;
+      payment.status = 'captured';
+      payment.paidAt = new Date();
+      await payment.save();
+
+      return res.json({
+        success: true,
+        message: 'Payment verified (already enrolled)',
+        payment: {
+          id: payment._id,
+          amount: payment.amount,
+          course: payment.course.courseTitle,
+          paymentId: payment.paymentId,
+          paidAt: payment.paidAt
+        },
+        enrollment: {
+          id: existingEnrollmentCheck._id,
+          enrolledAt: existingEnrollmentCheck.enrolledAt
+        },
+        alreadyEnrolled: true
       });
     }
 
@@ -223,6 +280,21 @@ exports.verifyPayment = async (req, res) => {
     payment.paidAt = new Date();
     await payment.save();
 
+    // Create enrollment and respond
+    await createEnrollmentAndRespond(payment, res);
+  } catch (error) {
+    console.error('Verify payment error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error verifying payment',
+      error: error.message
+    });
+  }
+};
+
+// Helper function to create enrollment and send response
+const createEnrollmentAndRespond = async (payment, res) => {
+  try {
     // Create enrollment
     const enrollment = new Enrollment({
       student: payment.student._id,
@@ -248,13 +320,25 @@ exports.verifyPayment = async (req, res) => {
       enrollment: {
         id: enrollment._id,
         enrolledAt: enrollment.enrolledAt
+      },
+      newEnrollment: true
+    });
+  } catch (enrollmentError) {
+    console.error('Enrollment creation error:', enrollmentError);
+    
+    // If enrollment fails, mark payment as failed for manual review
+    await Payment.findByIdAndUpdate(payment._id, {
+      status: 'failed',
+      error: {
+        reason: 'Enrollment creation failed',
+        details: enrollmentError.message
       }
     });
-  } catch (error) {
+
     res.status(500).json({
       success: false,
-      message: 'Error verifying payment',
-      error: error.message
+      message: 'Payment verified but enrollment failed. Please contact support.',
+      error: enrollmentError.message
     });
   }
 };
@@ -265,7 +349,7 @@ exports.verifyPayment = async (req, res) => {
 exports.getPaymentDetails = async (req, res) => {
   try {
     const payment = await Payment.findById(req.params.paymentId)
-      .populate('course', 'courseTitle courseImage')
+      .populate('course', 'courseTitle courseImage isActive')
       .populate('student', 'name email');
 
     if (!payment) {
@@ -302,7 +386,7 @@ exports.getPaymentDetails = async (req, res) => {
 exports.getMyPayments = async (req, res) => {
   try {
     const payments = await Payment.find({ student: req.user.id })
-      .populate('course', 'courseTitle courseImage category')
+      .populate('course', 'courseTitle courseImage category isActive')
       .sort({ createdAt: -1 });
 
     res.json({
@@ -326,12 +410,19 @@ exports.paymentFailed = async (req, res) => {
   try {
     const { razorpay_order_id, error } = req.body;
 
+    if (!razorpay_order_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Order ID is required'
+      });
+    }
+
     // Find and update payment record
     const payment = await Payment.findOne({ orderId: razorpay_order_id });
 
     if (payment) {
       payment.status = 'failed';
-      payment.error = error;
+      payment.error = error || { reason: 'Payment failed by user' };
       await payment.save();
     }
 
@@ -359,7 +450,7 @@ exports.getAllPayments = async (req, res) => {
     if (status) filter.status = status;
 
     const payments = await Payment.find(filter)
-      .populate('course', 'courseTitle')
+      .populate('course', 'courseTitle isActive')
       .populate('student', 'name email')
       .sort({ createdAt: -1 })
       .limit(limit * 1)
@@ -431,16 +522,9 @@ exports.getPaymentAnalytics = async (req, res) => {
         $match: { status: 'captured' }
       },
       {
-        $group: {
-          _id: '$course',
-          revenue: { $sum: '$amount' },
-          enrollments: { $sum: 1 }
-        }
-      },
-      {
         $lookup: {
           from: 'courses',
-          localField: '_id',
+          localField: 'course',
           foreignField: '_id',
           as: 'course'
         }
@@ -449,10 +533,16 @@ exports.getPaymentAnalytics = async (req, res) => {
         $unwind: '$course'
       },
       {
-        $project: {
-          courseTitle: '$course.courseTitle',
-          revenue: 1,
-          enrollments: 1
+        $match: {
+          'course.isActive': true
+        }
+      },
+      {
+        $group: {
+          _id: '$course._id',
+          revenue: { $sum: '$amount' },
+          enrollments: { $sum: 1 },
+          courseTitle: { $first: '$course.courseTitle' }
         }
       },
       {
@@ -493,7 +583,9 @@ exports.processRefund = async (req, res) => {
     const { paymentId } = req.params;
     const { amount, notes } = req.body;
 
-    const payment = await Payment.findById(paymentId);
+    const payment = await Payment.findById(paymentId)
+      .populate('course')
+      .populate('student');
 
     if (!payment) {
       return res.status(404).json({
@@ -535,15 +627,14 @@ exports.processRefund = async (req, res) => {
     // Cancel enrollment if full refund
     if (refundAmount === Math.round(payment.amount * 100)) {
       await Enrollment.findOneAndDelete({
-        student: payment.student,
-        course: payment.course
+        student: payment.student._id,
+        course: payment.course._id
       });
 
       // Update course total students
-      const course = await Course.findById(payment.course);
-      if (course) {
-        await course.updateTotalStudents();
-        await course.save();
+      if (payment.course) {
+        await payment.course.updateTotalStudents();
+        await payment.course.save();
       }
     }
 

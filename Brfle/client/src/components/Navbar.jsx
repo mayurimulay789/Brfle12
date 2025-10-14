@@ -128,11 +128,11 @@ export default function Navbar() {
                   </Link>
 
                   <Link
-                    to="/profile"
+                    to="/myprofile"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
                     onClick={() => setDropdownOpen(false)}
                   >
-                    Profile
+                    My Profile
                   </Link>
 
                   <button
@@ -203,7 +203,7 @@ export default function Navbar() {
                 {user?.role === 'instructor' && <Link to="/instructor-panel" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>Instructor Panel</Link>}
                 <Link to="/my-courses" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>My Courses</Link>
                 <Link to="/certificates" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>Certificates</Link>
-                <Link to="/profile" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>Profile</Link>
+                <Link to="/myprofile" className="block hover:text-gray-300 transition-colors text-white py-2" onClick={() => setIsOpen(false)}>My Profile</Link>
                 <button onClick={handleLogout} className="block w-full text-left text-red-400 hover:text-red-300 py-2 font-medium">Logout</button>
               </div>
             ) : (

@@ -20,6 +20,9 @@ import LoginForm from "./components/LoginForm.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import MyProfile from './pages/MyProfile';
+import PaymentSuccess from "./components/PaymentSuccess.jsx";
+import MyCourses from "./components/MyCourses.jsx";
 
 // Home Component
 function Home() {
@@ -73,9 +76,13 @@ function AppContent() {
           <Route path="/courses" element={<Courses />} />
           {/* <Route path="/courses/:id" element={<CourseDetail />} /> */}
           {/* <Route path="/courses/:id" element={<CourseDetailPage />} /> */}
-          <Route path="/checkout/:id" element={<Checkout />} />
+          <Route path="/checkout" element={<Checkout />} />
           <Route path="/register" element={<RegistrationForm />} />
           <Route path="/login" element={<LoginForm />} />
+          <Route path="/myprofile" element={<MyProfile />} />
+          <Route path="/payment-success" element={<PaymentSuccess/>} />
+          <Route path="/my-courses" element={<MyCourses />} />
+
           
           {/* ✅ Protected Routes (Require Authentication) */}
           <Route 

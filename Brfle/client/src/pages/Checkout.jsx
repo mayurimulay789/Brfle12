@@ -1,412 +1,359 @@
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, CheckCircle, Users, Star, Clock } from "lucide-react";
+import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  createPaymentOrder,
-  verifyPayment,
-  resetPaymentState,
-} from "../store/slices/paymentSlice";
-import { fetchCourse } from "../store/slices/courseSlice";
-import { PaymentModal } from "../components/PaymentModal";
+import { useLocation, useNavigate } from "react-router-dom";
+import { verifyPayment, recordPaymentFailure } from "../store/slices/paymentSlice";
 
 export default function Checkout() {
-  const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  // Redux state
-  const { order, loading, error, verificationLoading } = useSelector((state) => state.payment);
-  const { currentCourse, loading: courseLoading } = useSelector((state) => state.courses);
+  const { course, order, razorpayKey } = location.state || {};
   const { user } = useSelector((state) => state.auth);
+  const { loading: paymentLoading, error: paymentError } = useSelector((state) => state.payments);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formErrors, setFormErrors] = useState({});
-  const [billingInfo, setBillingInfo] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
+  const [formData, setFormData] = useState({
+    fullName: user?.FullName || "",
+    email: user?.email || "",
     phone: "",
     address: "",
     city: "",
-    state: "",
-    zipCode: "",
-    country: "IN",
+    pincode: "",
   });
-  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  // ✅ Fetch course details
+  const [processing, setProcessing] = useState(false);
+
   useEffect(() => {
-    if (id) {
-      dispatch(fetchCourse(id));
+    if (!course || !order) {
+      navigate("/courses");
     }
-  }, [id, dispatch]);
+  }, [course, order, navigate]);
 
-  // ✅ Pre-fill form with user data if available
-  useEffect(() => {
-    if (user) {
-      setBillingInfo(prev => ({
-        ...prev,
-        firstName: user.name?.split(' ')[0] || "",
-        lastName: user.name?.split(' ').slice(1).join(' ') || "",
-        email: user.email || "",
-        phone: user.phone || ""
-      }));
-    }
-  }, [user]);
-
-  // ✅ Form Handling
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setBillingInfo({ ...billingInfo, [name]: value });
-    // Clear error when user starts typing
-    if (formErrors[name]) {
-      setFormErrors(prev => ({ ...prev, [name]: '' }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
-  const validateForm = () => {
-    const errors = {};
-    if (!billingInfo.firstName.trim()) errors.firstName = "First name is required";
-    if (!billingInfo.lastName.trim()) errors.lastName = "Last name is required";
-    if (!billingInfo.email.trim()) errors.email = "Email is required";
-    if (!/\S+@\S+\.\S+/.test(billingInfo.email)) errors.email = "Email is invalid";
-    if (!/^\d{10}$/.test(billingInfo.phone))
-      errors.phone = "Enter a valid 10-digit phone number";
-    if (!billingInfo.address.trim()) errors.address = "Address is required";
-    if (!billingInfo.city.trim()) errors.city = "City is required";
-    if (!billingInfo.state.trim()) errors.state = "State is required";
-    if (!billingInfo.zipCode.trim()) errors.zipCode = "ZIP code is required";
-    if (!termsAccepted) errors.terms = "You must accept terms & policies";
-    setFormErrors(errors);
-    return Object.keys(errors).length === 0;
-  };
-
-  // ✅ Handle Modal Open
-  const handlePaymentStart = () => {
-    if (!validateForm()) return;
-    setIsModalOpen(true);
-  };
-
-  // ✅ Handle Razorpay Online Payment
-  const handleOnlinePayment = async () => {
-    try {
-      // Create payment order
-      await dispatch(createPaymentOrder(id)).unwrap();
-      
-      // Razorpay will be handled in the PaymentModal component
-      setIsModalOpen(false);
-    } catch (err) {
-      console.error("Payment initiation failed:", err);
-    }
-  };
-
-  // ✅ Handle successful payment (called from PaymentModal)
-  const handlePaymentSuccess = () => {
-    dispatch(resetPaymentState());
-    navigate("/my-courses", { 
-      state: { 
-        message: "Payment successful! You are now enrolled in the course.",
-        courseId: id 
-      } 
+  const initializeRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => {
+        resolve(true);
+      };
+      script.onerror = () => {
+        resolve(false);
+      };
+      document.body.appendChild(script);
     });
   };
 
-  if (courseLoading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading course details...</p>
-        </div>
-      </div>
-    );
-  }
+  const handlePayment = async () => {
+    if (!formData.fullName || !formData.email || !formData.phone) {
+      alert("Please fill in all required fields");
+      return;
+    }
 
-  if (!currentCourse) {
+    if (!formData.phone.match(/^\d{10}$/)) {
+      alert("Please enter a valid 10-digit phone number");
+      return;
+    }
+
+    setProcessing(true);
+
+    try {
+      // Load Razorpay script
+      const razorpayLoaded = await initializeRazorpay();
+      if (!razorpayLoaded) {
+        alert("Razorpay SDK failed to load. Please check your connection.");
+        setProcessing(false);
+        return;
+      }
+
+      const options = {
+        key: razorpayKey,
+        amount: order.amount,
+        currency: order.currency,
+        name: "BRFLE Academy",
+        description: `Enrollment for ${course.courseTitle}`,
+        order_id: order.id,
+        handler: async (response) => {
+          try {
+            // Verify payment with backend
+            const result = await dispatch(verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            })).unwrap();
+
+            // Redirect to success page
+            navigate("/payment-success", {
+              state: {
+                course: course,
+                payment: result.payment,
+                enrollment: result.enrollment,
+                userDetails: formData
+              }
+            });
+          } catch (error) {
+            console.error("Payment verification failed:", error);
+            alert("Payment verification failed. Please contact support.");
+          }
+        },
+        prefill: {
+          name: formData.fullName,
+          email: formData.email,
+          contact: formData.phone,
+        },
+        notes: {
+          course: course.courseTitle,
+          courseId: course._id,
+        },
+        theme: {
+          color: "#3399cc"
+        },
+        modal: {
+          ondismiss: async () => {
+            // Record failed payment when user closes the modal
+            await dispatch(recordPaymentFailure({
+              razorpay_order_id: order.id,
+              error: { reason: 'Payment cancelled by user' }
+            }));
+            setProcessing(false);
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+      
+    } catch (error) {
+      console.error("Payment initialization error:", error);
+      alert("Payment processing failed. Please try again.");
+      setProcessing(false);
+    }
+  };
+
+  if (!course || !order) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Course not found</p>
-          <button 
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Invalid Checkout Session</h2>
+          <button
             onClick={() => navigate("/courses")}
-            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
           >
-            Browse Courses
+            Back to Courses
           </button>
         </div>
       </div>
     );
   }
 
-  const courseFee = Number(currentCourse.price) || 0;
-  const discount = courseFee > 0 ? courseFee * 0.1 : 0; // 10% discount
-  const total = courseFee - discount;
+  const coursePrice = course.price || 15000;
+  const gst = Math.round(coursePrice * 0.18);
+  const totalAmount = coursePrice + gst;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <button
-            onClick={() => navigate(`/courses/${id}`)}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
-          >
-            <ArrowLeft size={20} /> Back to Course
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
-          <p className="text-gray-600 mt-2">Complete your enrollment in {currentCourse.courseTitle}</p>
+    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
+          <p className="text-gray-600">Complete your enrollment for {course.courseTitle}</p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* LEFT SIDE - Course & Billing Info */}
-          <div className="lg:col-span-2 space-y-8">
+        {paymentError && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6">
+            {paymentError}
+          </div>
+        )}
+
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+          <div className="grid md:grid-cols-2 gap-8 p-6">
             {/* Course Summary */}
-            <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Course Details</h2>
-              <div className="flex gap-4">
+            <div className="space-y-6">
+              <h2 className="text-xl font-bold text-gray-900">Course Details</h2>
+              
+              <div className="flex space-x-4">
                 <img
-                  src={currentCourse.courseImage?.url || '/api/placeholder/300/200'}
-                  alt={currentCourse.courseTitle}
-                  className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
-                  onError={(e) => {
-                    e.target.src = '/api/placeholder/300/200';
-                  }}
+                  src={course.courseImage?.url || "/default-course.jpg"}
+                  alt={course.courseTitle}
+                  className="w-24 h-24 object-cover rounded-lg"
                 />
-                <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    {currentCourse.courseTitle}
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                    {currentCourse.courseSummary}
-                  </p>
-                  <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>{currentCourse.duration}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
-                      <span>{currentCourse.totalStudents || 0} students</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Star className="h-4 w-4 text-yellow-400" />
-                      <span>{currentCourse.averageRating || 'New'}</span>
-                    </div>
-                  </div>
+                <div>
+                  <h3 className="font-semibold text-gray-900">{course.courseTitle}</h3>
+                  <p className="text-sm text-gray-600 mt-1">{course.category}</p>
+                  <p className="text-sm text-gray-600">{course.duration}</p>
+                  <p className="text-sm text-gray-600">{course.mode}</p>
                 </div>
               </div>
-            </section>
 
-            {/* Billing Information */}
-            <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-              <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-2">
-                Billing Information
-              </h2>
-              <div className="grid md:grid-cols-2 gap-4">
-                {[
-                  { key: "firstName", label: "First Name", required: true },
-                  { key: "lastName", label: "Last Name", required: true },
-                  { key: "email", label: "Email Address", required: true, type: "email" },
-                  { key: "phone", label: "Phone Number", required: true },
-                  { key: "address", label: "Address", required: true, fullWidth: true },
-                  { key: "city", label: "City", required: true },
-                  { key: "state", label: "State", required: true },
-                  { key: "zipCode", label: "ZIP Code", required: true },
-                ].map((field) => (
-                  <div 
-                    key={field.key} 
-                    className={field.fullWidth ? "md:col-span-2" : ""}
-                  >
+              <div className="border-t pt-4">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600">Course Fees</span>
+                  <span className="font-semibold">₹{coursePrice.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-gray-600">GST (18%)</span>
+                  <span className="font-semibold">₹{gst.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between items-center border-t pt-2">
+                  <span className="text-lg font-bold text-gray-900">Total Amount</span>
+                  <span className="text-lg font-bold text-gray-900">₹{totalAmount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* Order Info */}
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">Order Information</h4>
+                <p className="text-sm text-blue-800">Order ID: {order.id}</p>
+                <p className="text-sm text-blue-800">Amount: ₹{(order.amount / 100).toLocaleString()}</p>
+              </div>
+            </div>
+
+            {/* Checkout Form */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-6">Student Information</h2>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    name="fullName"
+                    value={formData.fullName}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="Enter your full name"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="Enter your email address"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Phone Number *
+                  </label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="Enter 10-digit phone number"
+                    maxLength="10"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Address
+                  </label>
+                  <textarea
+                    name="address"
+                    value={formData.address}
+                    onChange={handleInputChange}
+                    rows="3"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                    placeholder="Enter your complete address"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      {field.label} {field.required && <span className="text-red-500">*</span>}
+                      City
                     </label>
                     <input
-                      type={field.type || "text"}
-                      name={field.key}
-                      value={billingInfo[field.key]}
-                      onChange={handleChange}
-                      placeholder={`Enter your ${field.label.toLowerCase()}`}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
-                        formErrors[field.key] ? "border-red-500" : "border-gray-300"
-                      }`}
+                      type="text"
+                      name="city"
+                      value={formData.city}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                      placeholder="Enter your city"
                     />
-                    {formErrors[field.key] && (
-                      <span className="text-red-500 text-xs mt-1 block">
-                        {formErrors[field.key]}
-                      </span>
-                    )}
                   </div>
-                ))}
-              </div>
 
-              <div className="mt-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Country
-                </label>
-                <select
-                  name="country"
-                  value={billingInfo.country}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  <option value="IN">India</option>
-                  <option value="US">United States</option>
-                  <option value="UK">United Kingdom</option>
-                  <option value="CA">Canada</option>
-                  <option value="AU">Australia</option>
-                </select>
-              </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      PIN Code
+                    </label>
+                    <input
+                      type="text"
+                      name="pincode"
+                      value={formData.pincode}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent"
+                      placeholder="Enter PIN code"
+                      maxLength="6"
+                    />
+                  </div>
+                </div>
 
-              <div className="flex items-start mt-6">
-                <input
-                  type="checkbox"
-                  checked={termsAccepted}
-                  onChange={(e) => {
-                    setTermsAccepted(e.target.checked);
-                    if (formErrors.terms) {
-                      setFormErrors(prev => ({ ...prev, terms: '' }));
-                    }
-                  }}
-                  className="w-4 h-4 mt-1 mr-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                />
-                <span className="text-gray-700 text-sm">
-                  I agree to the{" "}
-                  <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
-                    Terms & Conditions
-                  </a>{" "}
-                  and{" "}
-                  <a href="/privacy" className="text-blue-600 hover:text-blue-800 underline">
-                    Privacy Policy
-                  </a>
-                </span>
+                <div className="pt-4">
+                  <button
+                    onClick={handlePayment}
+                    disabled={processing || paymentLoading}
+                    className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {processing || paymentLoading 
+                      ? "Processing..." 
+                      : `Pay ₹${totalAmount.toLocaleString()}`}
+                  </button>
+                  
+                  <button
+                    type="button"
+                    onClick={() => navigate("/courses")}
+                    className="w-full mt-3 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-semibold"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-              {formErrors.terms && (
-                <p className="text-red-500 text-xs mt-2">{formErrors.terms}</p>
-              )}
-            </section>
+            </div>
           </div>
+        </div>
 
-          {/* RIGHT SIDE - Order Summary */}
-          <aside className="space-y-6">
-            {/* Order Summary */}
-            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm sticky top-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">
-                Order Summary
-              </h2>
-              
-              <div className="space-y-3 mb-6">
-                <div className="flex justify-between text-gray-600">
-                  <span>Course Fee</span>
-                  <span className="font-medium">₹{courseFee.toFixed(2)}</span>
-                </div>
-                
-                {discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount (10%)</span>
-                    <span className="font-medium">-₹{discount.toFixed(2)}</span>
-                  </div>
-                )}
-                
-                <div className="flex justify-between border-t pt-3 text-lg font-bold text-gray-900">
-                  <span>Total Amount</span>
-                  <span>₹{total.toFixed(2)}</span>
-                </div>
-              </div>
+        {/* Additional Info */}
+        <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
+          <h3 className="font-bold text-gray-900 mb-4">What's Included</h3>
+          <ul className="space-y-2 text-sm text-gray-600">
+            <li>✅ Full course access for {course.duration || "lifetime"}</li>
+            <li>✅ Course materials and resources</li>
+            <li>✅ Certificate of completion</li>
+            <li>✅ Instructor support</li>
+            <li>✅ Lifetime access to course updates</li>
+            <li>✅ 30-day money-back guarantee</li>
+          </ul>
+        </div>
 
-              <button
-                onClick={handlePaymentStart}
-                disabled={loading || verificationLoading}
-                className={`w-full font-semibold py-3 rounded-lg transition-colors ${
-                  termsAccepted && !loading && !verificationLoading
-                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
-                    : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                {loading ? "Creating Order..." : 
-                 verificationLoading ? "Processing..." : 
-                 `Pay ₹${total.toFixed(2)}`}
-              </button>
-              
-              {error && (
-                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-800 text-sm">{error}</p>
-                </div>
-              )}
-
-              {/* Security Badges */}
-              <div className="mt-6 pt-4 border-t border-gray-200">
-                <div className="flex justify-center space-x-6 opacity-60">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" alt="Visa" className="h-6"/>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6"/>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-6"/>
-                  <img src="https://razorpay.com/assets/razorpay-glyph.svg" alt="Razorpay" className="h-6"/>
-                </div>
-                <p className="text-center text-xs text-gray-500 mt-2">
-                  256-bit SSL secured payment
-                </p>
-              </div>
-            </div>
-
-            {/* What's Included */}
-            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">
-                What's Included
-              </h4>
-              <div className="space-y-3 text-sm text-gray-700">
-                {[
-                  "Instant enrollment after payment",
-                  "Lifetime access to course materials",
-                  "Certificate of completion",
-                  "Downloadable resources and projects",
-                  "Community support access",
-                  "30-day money-back guarantee",
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3">
-                    <CheckCircle
-                      size={16}
-                      className="text-green-500 flex-shrink-0"
-                    />
-                    <span>{item}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Support Info */}
-            <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
-              <h4 className="font-semibold text-blue-900 mb-3">Need Help?</h4>
-              <div className="space-y-2 text-sm text-blue-800">
-                <p className="flex items-center gap-2">
-                  <span>📧</span>
-                  <span>support@brfle.com</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <span>📞</span>
-                  <span>+91-9876543210</span>
-                </p>
-                <p className="flex items-center gap-2">
-                  <span>🕒</span>
-                  <span>24/7 Support Available</span>
-                </p>
-              </div>
-            </div>
-          </aside>
+        {/* Security Info */}
+        <div className="mt-4 text-center">
+          <p className="text-sm text-gray-500">
+            🔒 Your payment is secure and encrypted. We use Razorpay for safe transactions.
+          </p>
         </div>
       </div>
-
-      {/* Payment Modal */}
-      <PaymentModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        onOnline={handleOnlinePayment}
-        amount={total}
-        course={currentCourse}
-        billingInfo={billingInfo}
-        onPaymentSuccess={handlePaymentSuccess}
-        order={order}
-        loading={loading || verificationLoading}
-      />
     </div>
   );
 }

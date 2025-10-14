@@ -1,6 +1,23 @@
-
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import paymentAPI from '../api/paymentAPI';
+
+// Get Razorpay key from environment variables
+const getRazorpayKey = () => {
+  // For Create React App, environment variables are available via process.env
+  // For Vite, you might need to use import.meta.env
+  if (typeof process !== 'undefined' && process.env.REACT_APP_RAZORPAY_KEY_ID) {
+    return process.env.REACT_APP_RAZORPAY_KEY_ID;
+  }
+  
+  // Fallback for Vite or other setups
+  if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) {
+    return import.meta.env.VITE_RAZORPAY_KEY_ID;
+  }
+  
+  // Fallback to a default or throw error
+  console.warn('Razorpay key not found in environment variables');
+  return 'rzp_test_default_key'; // Use a test key or throw error
+};
 
 // Async Thunks
 export const createPaymentOrder = createAsyncThunk(
@@ -31,15 +48,29 @@ export const verifyPayment = createAsyncThunk(
   }
 );
 
-export const recordFailedPayment = createAsyncThunk(
-  'payments/recordFailed',
+export const recordPaymentFailure = createAsyncThunk(
+  'payments/recordFailure',
   async (paymentData, { rejectWithValue }) => {
     try {
-      const response = await paymentAPI.recordFailedPayment(paymentData);
+      const response = await paymentAPI.paymentFailed(paymentData);
       return response.data;
     } catch (error) {
       return rejectWithValue(
         error.response?.data?.message || 'Failed to record payment failure'
+      );
+    }
+  }
+);
+
+export const fetchPaymentDetails = createAsyncThunk(
+  'payments/fetchDetails',
+  async (paymentId, { rejectWithValue }) => {
+    try {
+      const response = await paymentAPI.getPaymentDetails(paymentId);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch payment details'
       );
     }
   }
@@ -59,13 +90,62 @@ export const fetchMyPayments = createAsyncThunk(
   }
 );
 
+// Admin thunks
+export const fetchAllPayments = createAsyncThunk(
+  'payments/fetchAll',
+  async (params = {}, { rejectWithValue }) => {
+    try {
+      const response = await paymentAPI.getAllPayments(params);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch all payments'
+      );
+    }
+  }
+);
+
+export const fetchPaymentAnalytics = createAsyncThunk(
+  'payments/fetchAnalytics',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await paymentAPI.getPaymentAnalytics();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch payment analytics'
+      );
+    }
+  }
+);
+
+export const processRefund = createAsyncThunk(
+  'payments/processRefund',
+  async ({ paymentId, refundData }, { rejectWithValue }) => {
+    try {
+      const response = await paymentAPI.processRefund(paymentId, refundData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to process refund'
+      );
+    }
+  }
+);
+
 const initialState = {
-  order: null,
-  payments: [],
+  currentOrder: null,
+  paymentStatus: 'idle', // 'idle', 'processing', 'success', 'failed', 'order_created', 'verifying'
+  paymentDetails: null,
+  paymentHistory: [],
+  allPayments: [],
+  analytics: null,
   loading: false,
   error: null,
   success: null,
-  verificationLoading: false
+  razorpayConfig: {
+    key: getRazorpayKey(), // Use the function to get the key
+  }
 };
 
 const paymentSlice = createSlice({
@@ -78,51 +158,95 @@ const paymentSlice = createSlice({
     clearSuccess: (state) => {
       state.success = null;
     },
-    clearOrder: (state) => {
-      state.order = null;
+    clearCurrentOrder: (state) => {
+      state.currentOrder = null;
+    },
+    clearPaymentDetails: (state) => {
+      state.paymentDetails = null;
+    },
+    setPaymentStatus: (state, action) => {
+      state.paymentStatus = action.payload;
     },
     resetPaymentState: (state) => {
-      state.order = null;
-      state.loading = false;
+      state.currentOrder = null;
+      state.paymentStatus = 'idle';
+      state.paymentDetails = null;
       state.error = null;
       state.success = null;
-      state.verificationLoading = false;
+    },
+    clearPaymentHistory: (state) => {
+      state.paymentHistory = [];
+    },
+    clearAnalytics: (state) => {
+      state.analytics = null;
+    },
+    // NEW: Update Razorpay key dynamically
+    setRazorpayKey: (state, action) => {
+      state.razorpayConfig.key = action.payload;
     }
   },
   extraReducers: (builder) => {
     builder
-      // Create order
+      // Create payment order
       .addCase(createPaymentOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.paymentStatus = 'processing';
       })
       .addCase(createPaymentOrder.fulfilled, (state, action) => {
         state.loading = false;
-        state.order = action.payload.order;
+        state.currentOrder = action.payload.order;
+        state.paymentStatus = 'order_created';
+        // Use the key from the backend response instead of env
+        state.razorpayConfig.key = action.payload.key;
         state.success = 'Payment order created successfully';
       })
       .addCase(createPaymentOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+        state.paymentStatus = 'failed';
+        state.currentOrder = null;
       })
       // Verify payment
       .addCase(verifyPayment.pending, (state) => {
-        state.verificationLoading = true;
+        state.loading = true;
         state.error = null;
+        state.paymentStatus = 'verifying';
       })
       .addCase(verifyPayment.fulfilled, (state, action) => {
-        state.verificationLoading = false;
-        state.order = null;
+        state.loading = false;
+        state.paymentStatus = 'success';
         state.success = action.payload.message;
+        state.currentOrder = null;
+        
+        // Add to payment history if it's a new payment
+        if (action.payload.payment) {
+          state.paymentHistory.unshift(action.payload.payment);
+        }
       })
       .addCase(verifyPayment.rejected, (state, action) => {
-        state.verificationLoading = false;
+        state.loading = false;
         state.error = action.payload;
+        state.paymentStatus = 'failed';
       })
-      // Record failed payment
-      .addCase(recordFailedPayment.fulfilled, (state) => {
-        state.order = null;
-        state.error = 'Payment failed. Please try again.';
+      // Record payment failure
+      .addCase(recordPaymentFailure.fulfilled, (state) => {
+        state.paymentStatus = 'failed';
+        state.currentOrder = null;
+        state.error = 'Payment failed';
+      })
+      // Fetch payment details
+      .addCase(fetchPaymentDetails.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPaymentDetails.fulfilled, (state, action) => {
+        state.loading = false;
+        state.paymentDetails = action.payload.payment;
+      })
+      .addCase(fetchPaymentDetails.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       })
       // Fetch my payments
       .addCase(fetchMyPayments.pending, (state) => {
@@ -131,11 +255,41 @@ const paymentSlice = createSlice({
       })
       .addCase(fetchMyPayments.fulfilled, (state, action) => {
         state.loading = false;
-        state.payments = action.payload.payments;
+        state.paymentHistory = action.payload.payments || [];
       })
       .addCase(fetchMyPayments.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
+      })
+      // Fetch all payments (Admin)
+      .addCase(fetchAllPayments.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllPayments.fulfilled, (state, action) => {
+        state.loading = false;
+        state.allPayments = action.payload.payments || [];
+      })
+      .addCase(fetchAllPayments.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      // Fetch payment analytics (Admin)
+      .addCase(fetchPaymentAnalytics.fulfilled, (state, action) => {
+        state.analytics = action.payload.analytics;
+      })
+      // Process refund (Admin)
+      .addCase(processRefund.fulfilled, (state, action) => {
+        state.success = action.payload.message;
+        // Update payment in allPayments array
+        const index = state.allPayments.findIndex(
+          payment => payment._id === action.payload.paymentId
+        );
+        if (index !== -1) {
+          state.allPayments[index].refundStatus = 'processed';
+          state.allPayments[index].refundAmount = action.payload.refund.amount;
+          state.allPayments[index].refundedAt = new Date().toISOString();
+        }
       });
   },
 });
@@ -143,8 +297,13 @@ const paymentSlice = createSlice({
 export const { 
   clearError, 
   clearSuccess, 
-  clearOrder, 
-  resetPaymentState 
+  clearCurrentOrder, 
+  clearPaymentDetails,
+  setPaymentStatus,
+  resetPaymentState,
+  clearPaymentHistory,
+  clearAnalytics,
+  setRazorpayKey
 } = paymentSlice.actions;
 
 export default paymentSlice.reducer;

@@ -20,7 +20,7 @@ api.interceptors.request.use(
 );
 
 const paymentAPI = {
-  // Create order
+  // Create Razorpay order
   createOrder: async (courseId) => {
     const response = await api.post('/create-order', { courseId });
     return response;
@@ -32,8 +32,8 @@ const paymentAPI = {
     return response;
   },
 
-  // Record failed payment
-  recordFailedPayment: async (paymentData) => {
+  // Handle failed payment
+  paymentFailed: async (paymentData) => {
     const response = await api.post('/failed', paymentData);
     return response;
   },
@@ -44,11 +44,29 @@ const paymentAPI = {
     return response;
   },
 
-  // Get my payments
+  // Get user's payment history
   getMyPayments: async () => {
     const response = await api.get('/history/my-payments');
     return response;
   },
+
+  // Admin - Get all payments
+  getAllPayments: async (params = {}) => {
+    const response = await api.get('/admin/all-payments', { params });
+    return response;
+  },
+
+  // Admin - Get payment analytics
+  getPaymentAnalytics: async () => {
+    const response = await api.get('/admin/analytics');
+    return response;
+  },
+
+  // Admin - Process refund
+  processRefund: async (paymentId, refundData) => {
+    const response = await api.post(`/admin/refund/${paymentId}`, refundData);
+    return response;
+  }
 };
 
 export default paymentAPI;

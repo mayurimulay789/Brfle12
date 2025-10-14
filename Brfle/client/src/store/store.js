@@ -27,7 +27,6 @@
 
 import { configureStore } from '@reduxjs/toolkit';
 import adminReducer from './slices/adminSlice';
-// import certificateReducer from "./slices/certificateSlice";
 import authReducer from './slices/authSlice';
 import courseReducer from './slices/courseSlice';
 import lessonReducer from './slices/lessonSlice';
@@ -37,7 +36,6 @@ import enrollmentReducer from './slices/enrollmentSlice';
 export const store = configureStore({
   reducer: {
     admin: adminReducer,
-    // certificates: certificateReducer,
     auth: authReducer,
     courses: courseReducer,
     lessons: lessonReducer,

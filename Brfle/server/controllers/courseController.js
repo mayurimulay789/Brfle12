@@ -879,7 +879,7 @@ const createMCQTest = async (req, res) => {
       if (!question.question || !question.options || question.options.length !== 4) {
         return res.status(400).json({
           success: false,
-          message: `Question ${i + 1} must have a question and exactly 4 options`
+          message: `Question ${i + 1} must have a question  and exactly 4 options`
         });
       }
       if (question.correctAnswer === undefined || question.correctAnswer < 0 || question.correctAnswer > 3) {
