@@ -1,18 +1,48 @@
+// import { configureStore } from '@reduxjs/toolkit';
+// import authReducer from './slices/authSlice';
+// // import adminReducer from './slices/adminSlice';
+// // import certificateReducer from "./slices/certificateSlice";
+// import courseReducer from "./slices/courseSlice";
+// import paymentReducer from "./slices/paymentSlice";
+// import enrollmentReducer from "./slices/enrollmentSlice"; // Add this line
+
+// export const store = configureStore({
+//   reducer: {
+//     auth: authReducer,
+//     // admin: adminReducer,
+//     courses: courseReducer,
+//     payment: paymentReducer,
+//     // certificates: certificateReducer,
+//     enrollments: enrollmentReducer, // Add this line
+//   },
+//   middleware: (getDefaultMiddleware) =>
+//     getDefaultMiddleware({
+//       serializableCheck: {
+//         ignoredActions: ['persist/PERSIST'],
+//       },
+//     }),
+// });
+
+// export default store;
+
 import { configureStore } from '@reduxjs/toolkit';
+import adminReducer from './slices/adminSlice';
+// import certificateReducer from "./slices/certificateSlice";
 import authReducer from './slices/authSlice';
-import adminReducer from './slices/adminSlice'; // Your existing admin slice
-import certificateReducer from "./slices/certificateSlice";
-import courseReducer from "./slices/courseSlice";
-import paymentReducer from "./slices/paymentSlice";
+import courseReducer from './slices/courseSlice';
+import lessonReducer from './slices/lessonSlice';
+import paymentReducer from './slices/paymentSlice';
+import enrollmentReducer from './slices/enrollmentSlice';
 
 export const store = configureStore({
   reducer: {
-    auth: authReducer,
     admin: adminReducer,
+    // certificates: certificateReducer,
+    auth: authReducer,
     courses: courseReducer,
-    payment: paymentReducer,
-    certificates: certificateReducer,
-    // Add other reducers here
+    lessons: lessonReducer,
+    payments: paymentReducer,
+    enrollments: enrollmentReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

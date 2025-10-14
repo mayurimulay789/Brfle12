@@ -11,4 +11,5 @@ router.post('/logout', logoutUser);
 // get me
 router.get('/me', getCurrentUser);
 
+
 module.exports = router;

@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, CreditCard, CheckCircle } from "lucide-react";
+import { ArrowLeft, CreditCard, CheckCircle, Users, Star, Clock } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  createOrder,
+  createPaymentOrder,
   verifyPayment,
-  resetPayment,
+  resetPaymentState,
 } from "../store/slices/paymentSlice";
+import { fetchCourse } from "../store/slices/courseSlice";
 import { PaymentModal } from "../components/PaymentModal";
 
 export default function Checkout() {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { order, loading, error } = useSelector((state) => state.payment);
+  
+  // Redux state
+  const { order, loading, error, verificationLoading } = useSelector((state) => state.payment);
+  const { currentCourse, loading: courseLoading } = useSelector((state) => state.courses);
+  const { user } = useSelector((state) => state.auth);
 
-  const [course, setCourse] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const [billingInfo, setBillingInfo] = useState({
@@ -33,33 +37,46 @@ export default function Checkout() {
 
   // ✅ Fetch course details
   useEffect(() => {
-    if (!id) return;
-    const fetchCourse = async () => {
-      try {
-        const res = await fetch(`http://localhost:5000/api/courses/${id}`);
-        const data = await res.json();
-        setCourse(data);
-      } catch (err) {
-        console.error(err);
-        navigate("/courses");
-      }
-    };
-    fetchCourse();
-  }, [id, navigate]);
+    if (id) {
+      dispatch(fetchCourse(id));
+    }
+  }, [id, dispatch]);
+
+  // ✅ Pre-fill form with user data if available
+  useEffect(() => {
+    if (user) {
+      setBillingInfo(prev => ({
+        ...prev,
+        firstName: user.name?.split(' ')[0] || "",
+        lastName: user.name?.split(' ').slice(1).join(' ') || "",
+        email: user.email || "",
+        phone: user.phone || ""
+      }));
+    }
+  }, [user]);
 
   // ✅ Form Handling
   const handleChange = (e) => {
     const { name, value } = e.target;
     setBillingInfo({ ...billingInfo, [name]: value });
+    // Clear error when user starts typing
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
+    }
   };
 
   const validateForm = () => {
     const errors = {};
     if (!billingInfo.firstName.trim()) errors.firstName = "First name is required";
+    if (!billingInfo.lastName.trim()) errors.lastName = "Last name is required";
     if (!billingInfo.email.trim()) errors.email = "Email is required";
+    if (!/\S+@\S+\.\S+/.test(billingInfo.email)) errors.email = "Email is invalid";
     if (!/^\d{10}$/.test(billingInfo.phone))
       errors.phone = "Enter a valid 10-digit phone number";
     if (!billingInfo.address.trim()) errors.address = "Address is required";
+    if (!billingInfo.city.trim()) errors.city = "City is required";
+    if (!billingInfo.state.trim()) errors.state = "State is required";
+    if (!billingInfo.zipCode.trim()) errors.zipCode = "ZIP code is required";
     if (!termsAccepted) errors.terms = "You must accept terms & policies";
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -74,49 +91,28 @@ export default function Checkout() {
   // ✅ Handle Razorpay Online Payment
   const handleOnlinePayment = async () => {
     try {
-      const userId = localStorage.getItem("userId") || "dummyUserId";
-      const orderData = await dispatch(createOrder({ courseId: id, userId })).unwrap();
-
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "BRFLE Academy",
-        description: course.title,
-        order_id: orderData.id,
-        handler: async (response) => {
-          const verifyRes = await dispatch(verifyPayment(response)).unwrap();
-          if (verifyRes.success) {
-            alert("Payment successful!");
-            dispatch(resetPayment());
-            navigate("/courses");
-          } else {
-            alert("Payment verification failed.");
-          }
-        },
-        prefill: {
-          name: `${billingInfo.firstName} ${billingInfo.lastName}`,
-          email: billingInfo.email,
-          contact: billingInfo.phone,
-        },
-        theme: { color: "#2563eb" },
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      // Create payment order
+      await dispatch(createPaymentOrder(id)).unwrap();
+      
+      // Razorpay will be handled in the PaymentModal component
+      setIsModalOpen(false);
     } catch (err) {
-      console.error(err);
-      alert("Failed to initiate payment.");
+      console.error("Payment initiation failed:", err);
     }
   };
 
-  // ✅ Handle Cash on Delivery
-  const handleCODPayment = () => {
-    alert("Cash on Delivery order placed successfully!");
-    navigate("/courses");
+  // ✅ Handle successful payment (called from PaymentModal)
+  const handlePaymentSuccess = () => {
+    dispatch(resetPaymentState());
+    navigate("/my-courses", { 
+      state: { 
+        message: "Payment successful! You are now enrolled in the course.",
+        courseId: id 
+      } 
+    });
   };
 
-  if (!course) {
+  if (courseLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-center">
@@ -127,72 +123,117 @@ export default function Checkout() {
     );
   }
 
-  const courseFee = Number(course.fees) || 0;
-  const discount = courseFee * 0.1;
+  if (!currentCourse) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">Course not found</p>
+          <button 
+            onClick={() => navigate("/courses")}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Browse Courses
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const courseFee = Number(currentCourse.price) || 0;
+  const discount = courseFee > 0 ? courseFee * 0.1 : 0; // 10% discount
   const total = courseFee - discount;
 
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center py-10">
-      <div className="bg-white rounded-2xl shadow-lg border border-gray-100 w-full max-w-6xl p-5">
-        <button
-          onClick={() => navigate(`/courses`)}
-          className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900"
-        >
-          <ArrowLeft size={20} /> Back to Courses
-        </button>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => navigate(`/courses/${id}`)}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
+          >
+            <ArrowLeft size={20} /> Back to Course
+          </button>
+          <h1 className="text-3xl font-bold text-gray-900">Checkout</h1>
+          <p className="text-gray-600 mt-2">Complete your enrollment in {currentCourse.courseTitle}</p>
+        </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* LEFT SIDE */}
+          {/* LEFT SIDE - Course & Billing Info */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Payment Method */}
-            <section className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-              <h2 className="mb-4 text-xl font-semibold text-gray-900 border-b pb-2">Payment Method</h2>
-              <div className="p-4 border-2 border-blue-500 rounded-lg bg-blue-50 flex items-center space-x-4">
-                <CreditCard className="w-6 h-6 text-blue-600" />
+            {/* Course Summary */}
+            <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">Course Details</h2>
+              <div className="flex gap-4">
+                <img
+                  src={currentCourse.courseImage?.url || '/api/placeholder/300/200'}
+                  alt={currentCourse.courseTitle}
+                  className="w-24 h-24 rounded-lg object-cover flex-shrink-0"
+                  onError={(e) => {
+                    e.target.src = '/api/placeholder/300/200';
+                  }}
+                />
                 <div className="flex-1">
-                  <p className="font-medium text-gray-900 text-lg">Razorpay Secure Payment</p>
-                  <p className="text-sm text-gray-600">Credit/Debit Card, UPI, Net Banking, Wallets</p>
-                </div>
-                <div className="flex space-x-3">
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" alt="Visa" className="h-6"/>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6"/>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-6"/>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    {currentCourse.courseTitle}
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-3 line-clamp-2">
+                    {currentCourse.courseSummary}
+                  </p>
+                  <div className="flex flex-wrap gap-4 text-sm text-gray-500">
+                    <div className="flex items-center gap-1">
+                      <Clock className="h-4 w-4" />
+                      <span>{currentCourse.duration}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      <span>{currentCourse.totalStudents || 0} students</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Star className="h-4 w-4 text-yellow-400" />
+                      <span>{currentCourse.averageRating || 'New'}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </section>
 
             {/* Billing Information */}
-            <section className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-              <h2 className="mb-4 text-xl font-semibold text-gray-900 border-b pb-2">
+            <section className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+              <h2 className="text-xl font-semibold text-gray-900 mb-6 border-b pb-2">
                 Billing Information
               </h2>
               <div className="grid md:grid-cols-2 gap-4">
                 {[
-                  "firstName",
-                  "lastName",
-                  "email",
-                  "phone",
-                  "address",
-                  "city",
-                  "state",
-                  "zipCode",
-                ].map((f) => (
-                  <div key={f} className="flex flex-col">
-                    <label className="text-gray-600 text-sm capitalize mb-1">
-                      {f.replace(/([A-Z])/g, " $1")}
+                  { key: "firstName", label: "First Name", required: true },
+                  { key: "lastName", label: "Last Name", required: true },
+                  { key: "email", label: "Email Address", required: true, type: "email" },
+                  { key: "phone", label: "Phone Number", required: true },
+                  { key: "address", label: "Address", required: true, fullWidth: true },
+                  { key: "city", label: "City", required: true },
+                  { key: "state", label: "State", required: true },
+                  { key: "zipCode", label: "ZIP Code", required: true },
+                ].map((field) => (
+                  <div 
+                    key={field.key} 
+                    className={field.fullWidth ? "md:col-span-2" : ""}
+                  >
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      {field.label} {field.required && <span className="text-red-500">*</span>}
                     </label>
                     <input
-                      name={f}
-                      value={billingInfo[f]}
+                      type={field.type || "text"}
+                      name={field.key}
+                      value={billingInfo[field.key]}
                       onChange={handleChange}
-                      placeholder={`Enter your ${f}`}
-                      className={`border p-3 rounded-lg outline-none ${
-                        formErrors[f] ? "border-red-500" : "border-gray-300"
+                      placeholder={`Enter your ${field.label.toLowerCase()}`}
+                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
+                        formErrors[field.key] ? "border-red-500" : "border-gray-300"
                       }`}
                     />
-                    {formErrors[f] && (
-                      <span className="text-red-500 text-xs mt-1">
-                        {formErrors[f]}
+                    {formErrors[field.key] && (
+                      <span className="text-red-500 text-xs mt-1 block">
+                        {formErrors[field.key]}
                       </span>
                     )}
                   </div>
@@ -200,77 +241,116 @@ export default function Checkout() {
               </div>
 
               <div className="mt-4">
-                <label className="block text-sm text-gray-600 mb-1">Country</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Country
+                </label>
                 <select
                   name="country"
                   value={billingInfo.country}
                   onChange={handleChange}
-                  className="border border-gray-300 p-3 rounded-lg w-full"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="IN">India</option>
                   <option value="US">United States</option>
+                  <option value="UK">United Kingdom</option>
+                  <option value="CA">Canada</option>
+                  <option value="AU">Australia</option>
                 </select>
               </div>
 
-              <div className="flex items-center mt-6">
+              <div className="flex items-start mt-6">
                 <input
                   type="checkbox"
                   checked={termsAccepted}
-                  onChange={(e) => setTermsAccepted(e.target.checked)}
-                  className="w-5 h-5 mr-2"
+                  onChange={(e) => {
+                    setTermsAccepted(e.target.checked);
+                    if (formErrors.terms) {
+                      setFormErrors(prev => ({ ...prev, terms: '' }));
+                    }
+                  }}
+                  className="w-4 h-4 mt-1 mr-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <span className="text-gray-700 text-sm">
                   I agree to the{" "}
-                  <span className="text-blue-600 underline cursor-pointer">
+                  <a href="/terms" className="text-blue-600 hover:text-blue-800 underline">
                     Terms & Conditions
-                  </span>
+                  </a>{" "}
+                  and{" "}
+                  <a href="/privacy" className="text-blue-600 hover:text-blue-800 underline">
+                    Privacy Policy
+                  </a>
                 </span>
               </div>
               {formErrors.terms && (
-                <p className="text-red-500 text-xs mt-1">{formErrors.terms}</p>
+                <p className="text-red-500 text-xs mt-2">{formErrors.terms}</p>
               )}
             </section>
           </div>
 
-          {/* RIGHT SIDE */}
+          {/* RIGHT SIDE - Order Summary */}
           <aside className="space-y-6">
             {/* Order Summary */}
-            <div className="bg-gray-50 p-6 rounded-xl border border-gray-200">
-              <h2 className="text-xl font-semibold mb-4 text-gray-900 border-b pb-2">
+            <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm sticky top-8">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4 border-b pb-2">
                 Order Summary
               </h2>
-              <div className="space-y-3 text-gray-700">
-                <div className="flex justify-between">
+              
+              <div className="space-y-3 mb-6">
+                <div className="flex justify-between text-gray-600">
                   <span>Course Fee</span>
-                  <span>₹{courseFee.toFixed(2)}</span>
+                  <span className="font-medium">₹{courseFee.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between text-green-600 font-medium">
-                  <span>Discount (10%)</span>
-                  <span>-₹{discount.toFixed(2)}</span>
-                </div>
+                
+                {discount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Discount (10%)</span>
+                    <span className="font-medium">-₹{discount.toFixed(2)}</span>
+                  </div>
+                )}
+                
                 <div className="flex justify-between border-t pt-3 text-lg font-bold text-gray-900">
-                  <span>Total</span>
+                  <span>Total Amount</span>
                   <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
 
               <button
                 onClick={handlePaymentStart}
-                disabled={loading}
-                className={`w-full font-semibold py-3 rounded-lg mt-6 transition-colors ${
-                  termsAccepted
-                    ? "bg-blue-600 text-white hover:bg-blue-700"
+                disabled={loading || verificationLoading}
+                className={`w-full font-semibold py-3 rounded-lg transition-colors ${
+                  termsAccepted && !loading && !verificationLoading
+                    ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                 }`}
               >
-                {loading ? "Processing..." : "Pay with Razorpay"}
+                {loading ? "Creating Order..." : 
+                 verificationLoading ? "Processing..." : 
+                 `Pay ₹${total.toFixed(2)}`}
               </button>
-              {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+              
+              {error && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-red-800 text-sm">{error}</p>
+                </div>
+              )}
+
+              {/* Security Badges */}
+              <div className="mt-6 pt-4 border-t border-gray-200">
+                <div className="flex justify-center space-x-6 opacity-60">
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/0/04/Visa.svg" alt="Visa" className="h-6"/>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6"/>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/e/e1/UPI-Logo-vector.svg" alt="UPI" className="h-6"/>
+                  <img src="https://razorpay.com/assets/razorpay-glyph.svg" alt="Razorpay" className="h-6"/>
+                </div>
+                <p className="text-center text-xs text-gray-500 mt-2">
+                  256-bit SSL secured payment
+                </p>
+              </div>
             </div>
 
             {/* What's Included */}
-            <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
-              <h4 className="text-lg font-bold text-gray-900 mb-4">
+            <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+              <h4 className="text-lg font-semibold text-gray-900 mb-4">
                 What's Included
               </h4>
               <div className="space-y-3 text-sm text-gray-700">
@@ -278,9 +358,9 @@ export default function Checkout() {
                   "Instant enrollment after payment",
                   "Lifetime access to course materials",
                   "Certificate of completion",
-                  "30-day money-back guarantee",
-                  "Downloadable resources",
+                  "Downloadable resources and projects",
                   "Community support access",
+                  "30-day money-back guarantee",
                 ].map((item, idx) => (
                   <div key={idx} className="flex items-center gap-3">
                     <CheckCircle
@@ -294,25 +374,38 @@ export default function Checkout() {
             </div>
 
             {/* Support Info */}
-            <div className="bg-blue-50 rounded-2xl p-6 border border-blue-200">
+            <div className="bg-blue-50 rounded-xl p-6 border border-blue-200">
               <h4 className="font-semibold text-blue-900 mb-3">Need Help?</h4>
               <div className="space-y-2 text-sm text-blue-800">
-                <p>📧 support@brfle.com</p>
-                <p>📞 +91-9876543210</p>
-                <p>🕒 24/7 Support Available</p>
+                <p className="flex items-center gap-2">
+                  <span>📧</span>
+                  <span>support@brfle.com</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span>📞</span>
+                  <span>+91-9876543210</span>
+                </p>
+                <p className="flex items-center gap-2">
+                  <span>🕒</span>
+                  <span>24/7 Support Available</span>
+                </p>
               </div>
             </div>
           </aside>
         </div>
       </div>
 
-      {/* ✅ Payment Modal */}
+      {/* Payment Modal */}
       <PaymentModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onOnline={handleOnlinePayment}
-        onCOD={handleCODPayment}
-        amount={total.toFixed(2)}
+        amount={total}
+        course={currentCourse}
+        billingInfo={billingInfo}
+        onPaymentSuccess={handlePaymentSuccess}
+        order={order}
+        loading={loading || verificationLoading}
       />
     </div>
   );
