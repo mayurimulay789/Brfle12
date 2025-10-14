@@ -14,4 +14,5 @@ router.post('/logout', logoutUser);
 router.get('/me', protect, getCurrentUser);
 router.put('/me', protect, upload.single('profileImage'), updateUserProfile);
 
+
 module.exports = router;

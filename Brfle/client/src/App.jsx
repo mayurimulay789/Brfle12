@@ -10,6 +10,7 @@ import Hero from "./components/Hero.jsx";
 import About from "./pages/about.jsx";
 import Courses from "./pages/courses.jsx";
 import CourseDetail from "./pages/CourseDetail";
+// import CourseDetailPage from "./pages/CourseDetailPage.jsx";
 import Checkout from './pages/Checkout';
 import Features from "./pages/features.jsx";
 import GlobalPresence from "./pages/globalpresence.jsx";
@@ -71,7 +72,8 @@ function AppContent() {
           <Route path="/services" element={<Services />} />
           <Route path="/globalpresence" element={<GlobalPresence />} />
           <Route path="/courses" element={<Courses />} />
-          <Route path="/courses/:id" element={<CourseDetail />} />
+          {/* <Route path="/courses/:id" element={<CourseDetail />} /> */}
+          {/* <Route path="/courses/:id" element={<CourseDetailPage />} /> */}
           <Route path="/checkout/:id" element={<Checkout />} />
           <Route path="/register" element={<RegistrationForm />} />
           <Route path="/login" element={<LoginForm />} />

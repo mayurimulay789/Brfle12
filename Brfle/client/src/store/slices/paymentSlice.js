@@ -1,93 +1,150 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-// Async thunk to create order
-export const createOrder = createAsyncThunk(
-  "payment/createOrder",
-  async ({ courseId, userId }, { rejectWithValue }) => {
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import paymentAPI from '../api/paymentAPI';
+
+// Async Thunks
+export const createPaymentOrder = createAsyncThunk(
+  'payments/createOrder',
+  async (courseId, { rejectWithValue }) => {
     try {
-      const res = await fetch("http://localhost:5000/api/payment/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ courseId, userId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Failed to create order");
-      return data;
-    } catch (err) {
-      return rejectWithValue(err.message);
+      const response = await paymentAPI.createOrder(courseId);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to create payment order'
+      );
     }
   }
 );
 
-// Async thunk to verify payment
 export const verifyPayment = createAsyncThunk(
-  "payment/verifyPayment",
-  async (paymentResponse, { rejectWithValue }) => {
+  'payments/verify',
+  async (paymentData, { rejectWithValue }) => {
     try {
-      const res = await fetch("http://localhost:5000/api/payment/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(paymentResponse),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || "Payment verification failed");
-      return data;
-    } catch (err) {
-      return rejectWithValue(err.message);
+      const response = await paymentAPI.verifyPayment(paymentData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Payment verification failed'
+      );
     }
   }
 );
+
+export const recordFailedPayment = createAsyncThunk(
+  'payments/recordFailed',
+  async (paymentData, { rejectWithValue }) => {
+    try {
+      const response = await paymentAPI.recordFailedPayment(paymentData);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to record payment failure'
+      );
+    }
+  }
+);
+
+export const fetchMyPayments = createAsyncThunk(
+  'payments/fetchMyPayments',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await paymentAPI.getMyPayments();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || 'Failed to fetch payment history'
+      );
+    }
+  }
+);
+
+const initialState = {
+  order: null,
+  payments: [],
+  loading: false,
+  error: null,
+  success: null,
+  verificationLoading: false
+};
 
 const paymentSlice = createSlice({
-  name: "payment",
-  initialState: {
-    order: null,
-    loading: false,
-    error: null,
-    success: false,
-  },
+  name: 'payments',
+  initialState,
   reducers: {
-    resetPayment: (state) => {
+    clearError: (state) => {
+      state.error = null;
+    },
+    clearSuccess: (state) => {
+      state.success = null;
+    },
+    clearOrder: (state) => {
+      state.order = null;
+    },
+    resetPaymentState: (state) => {
       state.order = null;
       state.loading = false;
       state.error = null;
-      state.success = false;
-    },
+      state.success = null;
+      state.verificationLoading = false;
+    }
   },
   extraReducers: (builder) => {
     builder
       // Create order
-      .addCase(createOrder.pending, (state) => {
+      .addCase(createPaymentOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
-        state.success = false;
       })
-      .addCase(createOrder.fulfilled, (state, action) => {
+      .addCase(createPaymentOrder.fulfilled, (state, action) => {
         state.loading = false;
-        state.order = action.payload;
+        state.order = action.payload.order;
+        state.success = 'Payment order created successfully';
       })
-      .addCase(createOrder.rejected, (state, action) => {
+      .addCase(createPaymentOrder.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
       })
-
       // Verify payment
       .addCase(verifyPayment.pending, (state) => {
-        state.loading = true;
+        state.verificationLoading = true;
         state.error = null;
-        state.success = false;
       })
       .addCase(verifyPayment.fulfilled, (state, action) => {
-        state.loading = false;
-        state.success = action.payload.success;
+        state.verificationLoading = false;
+        state.order = null;
+        state.success = action.payload.message;
       })
       .addCase(verifyPayment.rejected, (state, action) => {
+        state.verificationLoading = false;
+        state.error = action.payload;
+      })
+      // Record failed payment
+      .addCase(recordFailedPayment.fulfilled, (state) => {
+        state.order = null;
+        state.error = 'Payment failed. Please try again.';
+      })
+      // Fetch my payments
+      .addCase(fetchMyPayments.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchMyPayments.fulfilled, (state, action) => {
+        state.loading = false;
+        state.payments = action.payload.payments;
+      })
+      .addCase(fetchMyPayments.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
-        state.success = false;
       });
   },
 });
 
-export const { resetPayment } = paymentSlice.actions;
+export const { 
+  clearError, 
+  clearSuccess, 
+  clearOrder, 
+  resetPaymentState 
+} = paymentSlice.actions;
+
 export default paymentSlice.reducer;
