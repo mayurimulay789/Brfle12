@@ -33,22 +33,9 @@
 // router.get('/stats/overview', admin, getCourseStats);
 
 const express = require('express');
-<<<<<<< HEAD
-const {
-  getAllCourses,
-  getCourseById,
-  createCourse,
-  updateCourse,
-  deleteCourse,
-  
-  addReview,
-  getCourseStats
-} = require('../controllers/courseController');
-=======
 const router = express.Router();
 const courseController = require('../controllers/courseController');
 const { genericUploader } = require('../utils/cloudinary');
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
 const { protect, admin } = require('../middleware/auth');
 
 // Debug middleware for courses routes
@@ -58,16 +45,10 @@ router.use((req, res, next) => {
   next();
 });
 
-<<<<<<< HEAD
-// Public routes
-router.get('/', getAllCourses);
-router.get('/:id', getCourseById);
-=======
 // ==================== PUBLIC ROUTES ====================
 router.get('/', courseController.getAllCourses);
 router.get('/:id', courseController.getCourse);
 router.get('/category/:category', courseController.getCoursesByCategory);
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
 
 // ==================== PROTECTED ROUTES (ADMIN ONLY) ====================
 // ✅ FIXED: Use generic uploader for all file types
@@ -107,15 +88,8 @@ router.put('/:id',
   courseController.updateCourse
 );
 
-<<<<<<< HEAD
-router.post('/', createCourse);
-router.put('/:id', updateCourse);
-router.delete('/:id', deleteCourse);
-
-=======
 // Delete course
 router.delete('/:id', protect, admin, courseController.deleteCourse);
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
 
 // Update course status
 router.put('/:id/status', protect, admin, courseController.updateCourseStatus);

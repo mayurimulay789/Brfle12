@@ -17,14 +17,9 @@
     "dotenv": "^17.2.3",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
-<<<<<<< HEAD
-    "mongoose": "^8.19.0",
-    "multer": "^2.0.2",
-=======
     "mongoose": "^8.19.1",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
     "razorpay": "^2.9.6"
   },
   "devDependencies": {

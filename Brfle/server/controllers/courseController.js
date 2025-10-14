@@ -1,19 +1,3 @@
-<<<<<<< HEAD
-const Course = require("../model/Course");
-const User = require("../model/User");
-
-// ==================== GET ALL COURSES ====================
-exports.getAllCourses = async (req, res) => {
-  try {
-    const courses = await Course.find({ isPublished: true, status: "published" })
-      .populate("createdBy", "username email")
-      .sort({ createdAt: -1 });
-
-    res.status(200).json({
-      success: true,
-      count: courses.length,
-      data: courses,
-=======
 // const Course = require('../model/Course');
 // const Progress = require('../model/Progress');
 
@@ -403,34 +387,32 @@ const getAllCourses = async (req, res) => {
       page: parseInt(page),
       pages: Math.ceil(total / limit),
       courses
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching courses',
+      error: error.message
+    });
   }
 };
 
-// ==================== GET SINGLE COURSE ====================
-exports.getCourseById = async (req, res) => {
+// @desc    Get single course
+// @route   GET /api/courses/:id
+// @access  Public
+const getCourse = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-<<<<<<< HEAD
-      .populate("createdBy", "username email")
-      .populate("reviews.user", "username email");
-=======
       .populate('createdBy', 'name email profilePicture')
       .populate('experiences.student', 'name profilePicture');
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
 
     if (!course) {
-      return res.status(404).json({ success: false, message: "Course not found" });
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
     }
 
-<<<<<<< HEAD
-    await course.incrementViews();
-
-    res.status(200).json({ success: true, data: course });
-=======
     // Get lessons for this course
     const lessons = await Lesson.find({ 
       course: req.params.id, 
@@ -450,21 +432,15 @@ exports.getCourseById = async (req, res) => {
         enrollmentCount
       }
     });
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching course',
+      error: error.message
+    });
   }
 };
 
-<<<<<<< HEAD
-// ==================== CREATE COURSE ====================
-exports.createCourse = async (req, res) => {
-  try {
-    const course = new Course({
-      ...req.body,
-      createdBy: req.user._id,
-    });
-=======
 // @desc    Create new course
 // @route   POST /api/courses
 // @access  Admin
@@ -569,23 +545,10 @@ const createCourse = async (req, res) => {
     console.log("Final course data:", courseData);
 
     const course = new Course(courseData);
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
     await course.save();
 
     res.status(201).json({
       success: true,
-<<<<<<< HEAD
-      message: "Course created successfully",
-      data: course,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ==================== UPDATE COURSE ====================
-exports.updateCourse = async (req, res) => {
-=======
       message: 'Course created successfully',
       course
     });
@@ -916,7 +879,7 @@ const createMCQTest = async (req, res) => {
       if (!question.question || !question.options || question.options.length !== 4) {
         return res.status(400).json({
           success: false,
-          message: `Question ${i + 1} must have a question and exactly 4 options`
+          message: `Question ${i + 1} must have a question  and exactly 4 options`
         });
       }
       if (question.correctAnswer === undefined || question.correctAnswer < 0 || question.correctAnswer > 3) {
@@ -1333,23 +1296,16 @@ const updateCourseStatus = async (req, res) => {
 // @route   DELETE /api/courses/:id
 // @access  Admin
 const deleteCourse = async (req, res) => {
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
   try {
     const course = await Course.findById(req.params.id);
 
     if (!course) {
-      return res.status(404).json({ success: false, message: "Course not found" });
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
     }
 
-<<<<<<< HEAD
-    Object.assign(course, req.body);
-    await course.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Course updated successfully",
-      data: course,
-=======
     // Delete all associated files from Cloudinary
     if (course.courseImage.public_id) {
       await deleteFromCloudinary(course.courseImage.public_id);
@@ -1385,150 +1341,16 @@ const deleteCourse = async (req, res) => {
     res.json({
       success: true,
       message: 'Course and all associated data deleted successfully'
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-<<<<<<< HEAD
-// ==================== DELETE COURSE ====================
-exports.deleteCourse = async (req, res) => {
-  try {
-    const course = await Course.findByIdAndDelete(req.params.id);
-    if (!course) {
-      return res.status(404).json({ success: false, message: "Course not found" });
-    }
-    res.status(200).json({ success: true, message: "Course deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ==================== ADD REVIEW ====================
-exports.addReview = async (req, res) => {
-  try {
-    const { rating, comment } = req.body;
-    const course = await Course.findById(req.params.id);
-
-    if (!course) {
-      return res.status(404).json({ success: false, message: "Course not found" });
-    }
-
-    const existingReview = course.reviews.find(
-      (rev) => rev.user.toString() === req.user._id.toString()
-    );
-
-    if (existingReview) {
-      return res
-        .status(400)
-        .json({ success: false, message: "You have already reviewed this course" });
-    }
-
-    const reviewData = {
-      user: req.user._id,
-      rating: Number(rating),
-      comment,
-      isVerifiedPurchase: true,
-    };
-
-    await course.addReview(reviewData);
-    await course.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Review added successfully",
-      data: course.reviews,
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting course',
+      error: error.message
     });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ==================== ENROLL COURSE ====================
-exports.enrollCourse = async (req, res) => {
-  try {
-    const course = await Course.findById(req.params.id);
-    if (!course) {
-      return res.status(404).json({ success: false, message: "Course not found" });
-    }
-
-    await course.incrementEnrollment();
-
-    res.status(200).json({
-      success: true,
-      message: "Enrolled successfully",
-      data: { enrollmentCount: course.enrollmentCount },
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ==================== GET COURSES BY CATEGORY ====================
-exports.getCoursesByCategory = async (req, res) => {
-  try {
-    const { category } = req.params;
-    const courses = await Course.findByCategory(category);
-
-    res.status(200).json({
-      success: true,
-      count: courses.length,
-      data: courses,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ==================== GET FEATURED COURSES ====================
-exports.getFeaturedCourses = async (req, res) => {
-  try {
-    const courses = await Course.getFeaturedCourses(10);
-    res.status(200).json({ success: true, data: courses });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ==================== GET POPULAR COURSES ====================
-exports.getPopularCourses = async (req, res) => {
-  try {
-    const courses = await Course.getPopularCourses(10);
-    res.status(200).json({ success: true, data: courses });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ==================== SEARCH COURSES ====================
-exports.searchCourses = async (req, res) => {
-  try {
-    const { query, category, level, minPrice, maxPrice, minRating } = req.query;
-    const filters = { category, level, minPrice, maxPrice, minRating };
-    const courses = await Course.searchCourses(query, filters);
-
-    res.status(200).json({
-      success: true,
-      count: courses.length,
-      data: courses,
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ==================== GET COURSE STATS ====================
-exports.getCourseStats = async (req, res) => {
-  try {
-    const stats = await Course.getCourseStats();
-    res.status(200).json({ success: true, data: stats[0] || {} });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-=======
 
 // At the end of courseController.js, ensure you have:
 module.exports = {
@@ -1551,4 +1373,3 @@ module.exports = {
   getCoursesByCategory,
   updateCourseStatus
 };
->>>>>>> b668140c6dd6cc15d243b0b08727e62c843ef342
