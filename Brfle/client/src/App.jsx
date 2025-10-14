@@ -19,6 +19,7 @@ import LoginForm from "./components/LoginForm.jsx";
 import Dashboard from "./components/Dashboard.jsx";
 import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import MyProfile from './pages/MyProfile';
 
 // Home Component
 function Home() {
@@ -74,6 +75,7 @@ function AppContent() {
           <Route path="/checkout/:id" element={<Checkout />} />
           <Route path="/register" element={<RegistrationForm />} />
           <Route path="/login" element={<LoginForm />} />
+          <Route path="/myprofile" element={<MyProfile />} />
           
           {/* ✅ Protected Routes (Require Authentication) */}
           <Route 

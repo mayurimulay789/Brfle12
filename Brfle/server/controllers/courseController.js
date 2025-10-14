@@ -1,329 +1,215 @@
-const Course = require('../model/Course');
-const Progress = require('../model/Progress');
+const Course = require("../model/Course");
+const User = require("../model/User");
 
-// @desc    Get all courses with filtering and pagination
-// @route   GET /api/courses
-// @access  Public
-const getCourses = async (req, res) => {
+// ==================== GET ALL COURSES ====================
+exports.getAllCourses = async (req, res) => {
   try {
-    const {
-      page = 1,
-      limit = 10,
-      search,
-      category,
-      level,
-      minPrice,
-      maxPrice,
-      minRating,
-      instructor,
-      featured,
-      popular,
-      sortBy = 'createdAt',
-      sortOrder = 'desc'
-    } = req.query;
+    const courses = await Course.find({ isPublished: true, status: "published" })
+      .populate("createdBy", "username email")
+      .sort({ createdAt: -1 });
 
-    // Build query
-    let query = Course.find().published();
-
-    // Search
-    if (search) {
-      query = Course.find({ 
-        $text: { $search: search },
-        isPublished: true,
-        status: 'published'
-      }).sort({ score: { $meta: "textScore" } });
-    }
-
-    // Filters
-    if (category) query = query.byCategory(category);
-    if (level) query = query.byLevel(level);
-    if (minPrice || maxPrice) {
-      const min = minPrice ? parseFloat(minPrice) : 0;
-      const max = maxPrice ? parseFloat(maxPrice) : Number.MAX_SAFE_INTEGER;
-      query = query.inPriceRange(min, max);
-    }
-    if (minRating) query = query.withMinRating(parseFloat(minRating));
-    if (instructor) query = query.byInstructor(instructor);
-    if (featured === 'true') query = query.featured();
-    if (popular === 'true') query = query.popular();
-
-    // Sorting
-    const sortOptions = {};
-    sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
-    query = query.sort(sortOptions);
-
-    // Pagination
-    const skip = (page - 1) * limit;
-    query = query.skip(skip).limit(parseInt(limit));
-
-    // Execute query
-    const courses = await query.populate('createdBy', 'FullName email profile');
-    const total = await Course.countDocuments(query.getFilter());
-
-    res.json({
+    res.status(200).json({
       success: true,
       count: courses.length,
-      pagination: {
-        page: parseInt(page),
-        pages: Math.ceil(total / limit),
-        total
-      },
-      data: courses
+      data: courses,
     });
-
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching courses',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Get single course
-// @route   GET /api/courses/:id
-// @access  Public
-const getCourse = async (req, res) => {
+// ==================== GET SINGLE COURSE ====================
+exports.getCourseById = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .populate('createdBy', 'FullName email profile')
-      .populate('reviews.user', 'FullName profile');
+      .populate("createdBy", "username email")
+      .populate("reviews.user", "username email");
 
     if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course not found'
-      });
+      return res.status(404).json({ success: false, message: "Course not found" });
     }
 
-    // Increment views
     await course.incrementViews();
 
-    res.json({
-      success: true,
-      data: course
-    });
-
+    res.status(200).json({ success: true, data: course });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching course',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Create course
-// @route   POST /api/courses
-// @access  Private/Instructor
-const createCourse = async (req, res) => {
+// ==================== CREATE COURSE ====================
+exports.createCourse = async (req, res) => {
   try {
-    const courseData = {
+    const course = new Course({
       ...req.body,
-      createdBy: req.user._id
-    };
-
-    const course = await Course.create(courseData);
+      createdBy: req.user._id,
+    });
+    await course.save();
 
     res.status(201).json({
       success: true,
-      message: 'Course created successfully',
-      data: course
+      message: "Course created successfully",
+      data: course,
     });
-
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Error creating course',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Update course
-// @route   PUT /api/courses/:id
-// @access  Private/Instructor
-const updateCourse = async (req, res) => {
-  try {
-    let course = await Course.findById(req.params.id);
-
-    if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course not found'
-      });
-    }
-
-    // Check if user is the course creator or admin
-    if (course.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to update this course'
-      });
-    }
-
-    course = await Course.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true, runValidators: true }
-    ).populate('createdBy', 'FullName email profile');
-
-    res.json({
-      success: true,
-      message: 'Course updated successfully',
-      data: course
-    });
-
-  } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Error updating course',
-      error: error.message
-    });
-  }
-};
-
-// @desc    Delete course
-// @route   DELETE /api/courses/:id
-// @access  Private/Instructor
-const deleteCourse = async (req, res) => {
+// ==================== UPDATE COURSE ====================
+exports.updateCourse = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id);
 
     if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course not found'
-      });
+      return res.status(404).json({ success: false, message: "Course not found" });
     }
 
-    // Check if user is the course creator or admin
-    if (course.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to delete this course'
-      });
-    }
+    Object.assign(course, req.body);
+    await course.save();
 
-    await Course.findByIdAndDelete(req.params.id);
-
-    res.json({
+    res.status(200).json({
       success: true,
-      message: 'Course deleted successfully'
+      message: "Course updated successfully",
+      data: course,
     });
-
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error deleting course',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Add lesson to course
-// @route   POST /api/courses/:id/lessons
-// @access  Private/Instructor
-const addLesson = async (req, res) => {
+// ==================== DELETE COURSE ====================
+exports.deleteCourse = async (req, res) => {
   try {
-    const course = await Course.findById(req.params.id);
-
+    const course = await Course.findByIdAndDelete(req.params.id);
     if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course not found'
-      });
+      return res.status(404).json({ success: false, message: "Course not found" });
     }
-
-    // Check if user is the course creator
-    if (course.createdBy.toString() !== req.user._id.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Not authorized to add lessons to this course'
-      });
-    }
-
-    await course.addLesson(req.body);
-
-    res.status(201).json({
-      success: true,
-      message: 'Lesson added successfully',
-      data: course
-    });
-
+    res.status(200).json({ success: true, message: "Course deleted successfully" });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Error adding lesson',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Add review to course
-// @route   POST /api/courses/:id/reviews
-// @access  Private
-const addReview = async (req, res) => {
+// ==================== ADD REVIEW ====================
+exports.addReview = async (req, res) => {
   try {
+    const { rating, comment } = req.body;
     const course = await Course.findById(req.params.id);
 
     if (!course) {
-      return res.status(404).json({
-        success: false,
-        message: 'Course not found'
-      });
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    const existingReview = course.reviews.find(
+      (rev) => rev.user.toString() === req.user._id.toString()
+    );
+
+    if (existingReview) {
+      return res
+        .status(400)
+        .json({ success: false, message: "You have already reviewed this course" });
     }
 
     const reviewData = {
-      ...req.body,
-      user: req.user._id
+      user: req.user._id,
+      rating: Number(rating),
+      comment,
+      isVerifiedPurchase: true,
     };
 
     await course.addReview(reviewData);
+    await course.save();
 
-    res.status(201).json({
+    res.status(200).json({
       success: true,
-      message: 'Review added successfully',
-      data: course
+      message: "Review added successfully",
+      data: course.reviews,
     });
-
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: 'Error adding review',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// @desc    Get course statistics
-// @route   GET /api/courses/stats/overview
-// @access  Private/Admin
-const getCourseStats = async (req, res) => {
+// ==================== ENROLL COURSE ====================
+exports.enrollCourse = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id);
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    await course.incrementEnrollment();
+
+    res.status(200).json({
+      success: true,
+      message: "Enrolled successfully",
+      data: { enrollmentCount: course.enrollmentCount },
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==================== GET COURSES BY CATEGORY ====================
+exports.getCoursesByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+    const courses = await Course.findByCategory(category);
+
+    res.status(200).json({
+      success: true,
+      count: courses.length,
+      data: courses,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==================== GET FEATURED COURSES ====================
+exports.getFeaturedCourses = async (req, res) => {
+  try {
+    const courses = await Course.getFeaturedCourses(10);
+    res.status(200).json({ success: true, data: courses });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==================== GET POPULAR COURSES ====================
+exports.getPopularCourses = async (req, res) => {
+  try {
+    const courses = await Course.getPopularCourses(10);
+    res.status(200).json({ success: true, data: courses });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==================== SEARCH COURSES ====================
+exports.searchCourses = async (req, res) => {
+  try {
+    const { query, category, level, minPrice, maxPrice, minRating } = req.query;
+    const filters = { category, level, minPrice, maxPrice, minRating };
+    const courses = await Course.searchCourses(query, filters);
+
+    res.status(200).json({
+      success: true,
+      count: courses.length,
+      data: courses,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==================== GET COURSE STATS ====================
+exports.getCourseStats = async (req, res) => {
   try {
     const stats = await Course.getCourseStats();
-    
-    res.json({
-      success: true,
-      data: stats[0] || {}
-    });
-
+    res.status(200).json({ success: true, data: stats[0] || {} });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching course statistics',
-      error: error.message
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
-};
-
-module.exports = {
-  getCourses,
-  getCourse,
-  createCourse,
-  updateCourse,
-  deleteCourse,
-  addLesson,
-  addReview,
-  getCourseStats
 };

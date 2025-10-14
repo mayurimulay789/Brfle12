@@ -149,9 +149,47 @@ const getCurrentUser = async (req, res) => {
   }
 };
 
+const updateUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update allowed fields only
+    user.FullName = req.body.FullName || user.FullName;
+    user.phone = req.body.phone || user.phone;
+    user.dateOfBirth = req.body.dateOfBirth || user.dateOfBirth;
+    user.gender = req.body.gender || user.gender;
+    user.country = req.body.country || user.country;
+    user.city = req.body.city || user.city;
+
+    const updatedUser = await user.save();
+
+    res.status(200).json({
+      user: {
+        _id: updatedUser._id,
+        FullName: updatedUser.FullName,
+        email: updatedUser.email,
+        phone: updatedUser.phone,
+        dateOfBirth: updatedUser.dateOfBirth,
+        gender: updatedUser.gender,
+        country: updatedUser.country,
+        city: updatedUser.city,
+      },
+      message: "Profile updated successfully",
+    });
+  } catch (error) {
+    console.error("Update Profile Error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = { 
   registerUser,
   loginUser,
   logoutUser,
-  getCurrentUser
+  getCurrentUser,
+  updateUserProfile
 };

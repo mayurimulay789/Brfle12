@@ -29,7 +29,7 @@ const authAPI = {
 
   // Update user profile
   updateProfile: async (userData) => {
-    const response = await axios.put(`${API_URL}/profile`, userData);
+    const response = await axios.put(`${API_URL}/myprofile`, userData);
     return response;
   },
 
