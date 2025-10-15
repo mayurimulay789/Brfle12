@@ -23,6 +23,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import MyProfile from './pages/MyProfile';
 import PaymentSuccess from "./components/PaymentSuccess.jsx";
 import MyCourses from "./components/MyCourses.jsx";
+import Chatbot from "./components/Chatbot.jsx";
 
 // Home Component
 function Home() {
@@ -107,6 +108,7 @@ function AppContent() {
         </Routes>
       </div>
       <Footer />
+      <Chatbot />
     </Router>
   );
 }

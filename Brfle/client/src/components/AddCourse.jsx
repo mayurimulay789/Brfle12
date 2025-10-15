@@ -1202,6 +1202,9 @@ const AddCourse = ({ onClose, editingCourse }) => {
   const [projectPDF, setProjectPDF] = useState(null)
   const [localError, setLocalError] = useState("")
   const [tagInput, setTagInput] = useState("")
+  const [qaPairs, setQaPairs] = useState([
+    { id: 1, question: "", answer: "" }
+  ])
 
   // Initialize form with editing course data
   useEffect(() => {
@@ -1252,6 +1255,12 @@ const AddCourse = ({ onClose, editingCourse }) => {
       e.preventDefault()
       handleAddTag()
     }
+  }
+
+  const handleQaChange = (id, field, value) => {
+    setQaPairs(prev => prev.map(pair =>
+      pair.id === id ? { ...pair, [field]: value } : pair
+    ))
   }
 
   const handleFileChange = (setter, fileType, maxSize) => (e) => {
@@ -1746,6 +1755,65 @@ const handleSubmit = async (e) => {
                   Add relevant tags to help students discover your course
                 </p>
               </div>
+            </section>
+
+            {/* Q&A Section */}
+            <section className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+              <h5 className="text-lg font-semibold text-gray-900 mb-4">Frequently Asked Questions</h5>
+              <p className="text-sm text-gray-600 mb-6">
+                Add common questions and answers that students might have about your course. This helps build trust and provides quick information.
+              </p>
+
+              <div className="space-y-4">
+                {qaPairs.map((pair, index) => (
+                  <div key={pair.id} className="bg-white p-4 rounded-lg border border-gray-200">
+                    <div className="flex justify-between items-center mb-3">
+                      <h6 className="text-sm font-medium text-gray-900">Q&A Pair {index + 1}</h6>
+                      {(pair.question.trim() || pair.answer.trim()) && (
+                        <button
+                          type="button"
+                          onClick={() => handleQaChange(pair.id, 'question', '') || handleQaChange(pair.id, 'answer', '')}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          Clear
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Question
+                        </label>
+                        <input
+                          type="text"
+                          value={pair.question}
+                          onChange={(e) => handleQaChange(pair.id, 'question', e.target.value)}
+                          placeholder="e.g., What are the prerequisites for this course?"
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Answer
+                        </label>
+                        <textarea
+                          value={pair.answer}
+                          onChange={(e) => handleQaChange(pair.id, 'answer', e.target.value)}
+                          rows={2}
+                          placeholder="Provide a clear and helpful answer..."
+                          className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <p className="text-xs text-gray-500 mt-4">
+                Tip: Focus on the most common questions students ask. You can leave the pair empty if you don't need it.
+              </p>
             </section>
 
             {/* Note about Lessons */}

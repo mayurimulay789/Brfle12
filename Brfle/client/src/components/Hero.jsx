@@ -943,7 +943,7 @@ const Hero = () => {
   const [showCheckoutButton, setShowCheckoutButton] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  const images = ["/computer.jpg", "/hills.jpg", "/office.jpg", "/culture.jpg"];
+  const images = ["/h2.jpg", "/business.jpg", "/h3.jpeg", "/earth.jpeg"];
 
   useEffect(() => {
     // Fetch courses when component mounts

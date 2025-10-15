@@ -65,7 +65,6 @@ export default function Checkout() {
     setProcessing(true);
 
     try {
-      // Load Razorpay script
       const razorpayLoaded = await initializeRazorpay();
       if (!razorpayLoaded) {
         alert("Razorpay SDK failed to load. Please check your connection.");
@@ -82,14 +81,12 @@ export default function Checkout() {
         order_id: order.id,
         handler: async (response) => {
           try {
-            // Verify payment with backend
             const result = await dispatch(verifyPayment({
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature
             })).unwrap();
 
-            // Redirect to success page
             navigate("/payment-success", {
               state: {
                 course: course,
@@ -117,7 +114,6 @@ export default function Checkout() {
         },
         modal: {
           ondismiss: async () => {
-            // Record failed payment when user closes the modal
             await dispatch(recordPaymentFailure({
               razorpay_order_id: order.id,
               error: { reason: 'Payment cancelled by user' }
@@ -206,7 +202,6 @@ export default function Checkout() {
                 </div>
               </div>
 
-              {/* Order Info */}
               <div className="bg-blue-50 p-4 rounded-lg">
                 <h4 className="font-semibold text-blue-900 mb-2">Order Information</h4>
                 <p className="text-sm text-blue-800">Order ID: {order.id}</p>
@@ -334,7 +329,6 @@ export default function Checkout() {
           </div>
         </div>
 
-        {/* Additional Info */}
         <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
           <h3 className="font-bold text-gray-900 mb-4">What's Included</h3>
           <ul className="space-y-2 text-sm text-gray-600">
@@ -347,7 +341,6 @@ export default function Checkout() {
           </ul>
         </div>
 
-        {/* Security Info */}
         <div className="mt-4 text-center">
           <p className="text-sm text-gray-500">
             🔒 Your payment is secure and encrypted. We use Razorpay for safe transactions.
