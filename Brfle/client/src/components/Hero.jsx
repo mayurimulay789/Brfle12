@@ -1201,7 +1201,7 @@ const Hero = () => {
                           onClick={handleFormSubmission}
                           className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
                         >
-                          I've Submitted the Form - Proceed to Checkout
+                          I've Submitted the Form - Proceed To Checkout
                         </button>
                       </div>
                     </>
