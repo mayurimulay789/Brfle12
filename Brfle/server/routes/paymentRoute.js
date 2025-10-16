@@ -14,8 +14,7 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentController');
-// const auth = require('../middleware/auth');
-// const adminAuth = require('../middleware/adminAuth');
+
 
 const { protect: auth, admin: adminAuth } = require('../middleware/auth');
 // Payment routes

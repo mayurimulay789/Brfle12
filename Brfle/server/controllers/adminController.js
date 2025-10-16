@@ -1,5 +1,10 @@
+
+
 const User = require('../model/User');
 const Course = require('../model/Course');
+const Enrollment = require('../model/Enrollment');
+const Payment = require('../model/Payment');
+const Lesson = require('../model/Lesson');
 
 // ==================== USER MANAGEMENT ====================
 
@@ -723,13 +728,486 @@ const recalculateCourseDuration = async (req, res) => {
   }
 };
 
+
+
+
+// @desc    Get comprehensive dashboard statistics
+// @route   GET /api/admin/dashboard/stats
+// @access  Admin
+const getDashboardStats = async (req, res) => {
+  try {
+    // Parallel execution for better performance
+    const [
+      totalUsers,
+      totalCourses,
+      totalEnrollments,
+      totalRevenue,
+      activeEnrollments,
+      completedEnrollments
+    ] = await Promise.all([
+      User.countDocuments(),
+      Course.countDocuments({ isActive: true }),
+      Enrollment.countDocuments(),
+      Payment.aggregate([
+        { $match: { status: 'captured' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]),
+      Enrollment.countDocuments({ status: 'active' }),
+      Enrollment.countDocuments({ status: 'completed' })
+    ]);
+
+    // Recent data (last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const [
+      newUsers,
+      newEnrollments,
+      recentRevenue
+    ] = await Promise.all([
+      User.countDocuments({ createdAt: { $gte: thirtyDaysAgo } }),
+      Enrollment.countDocuments({ enrolledAt: { $gte: thirtyDaysAgo } }),
+      Payment.aggregate([
+        { 
+          $match: { 
+            status: 'captured',
+            paidAt: { $gte: thirtyDaysAgo }
+          } 
+        },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      stats: {
+        users: {
+          total: totalUsers,
+          new: newUsers,
+          students: await User.countDocuments({ role: 'student' }),
+          admins: await User.countDocuments({ role: 'admin' })
+        },
+        courses: {
+          total: totalCourses,
+          active: totalCourses,
+          published: await Course.countDocuments({ isActive: true })
+        },
+        enrollments: {
+          total: totalEnrollments,
+          active: activeEnrollments,
+          completed: completedEnrollments,
+          new: newEnrollments,
+          completionRate: totalEnrollments > 0 ? 
+            (completedEnrollments / totalEnrollments) * 100 : 0
+        },
+        revenue: {
+          total: totalRevenue[0]?.total || 0,
+          recent: recentRevenue[0]?.total || 0,
+          currency: 'INR'
+        }
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching dashboard statistics',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get revenue analytics
+// @route   GET /api/admin/dashboard/revenue-analytics
+// @access  Admin
+const getRevenueAnalytics = async (req, res) => {
+  try {
+    const { period = '6months' } = req.query;
+    
+    let months = 6;
+    if (period === '1year') months = 12;
+    if (period === '3months') months = 3;
+
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - months);
+
+    // Revenue by month
+    const revenueByMonth = await Payment.aggregate([
+      {
+        $match: {
+          status: 'captured',
+          paidAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$paidAt' },
+            month: { $month: '$paidAt' }
+          },
+          revenue: { $sum: '$amount' },
+          transactions: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 }
+      }
+    ]);
+
+    // Revenue by course
+    const revenueByCourse = await Payment.aggregate([
+      {
+        $match: {
+          status: 'captured',
+          paidAt: { $gte: startDate }
+        }
+      },
+      {
+        $lookup: {
+          from: 'courses',
+          localField: 'course',
+          foreignField: '_id',
+          as: 'course'
+        }
+      },
+      {
+        $unwind: '$course'
+      },
+      {
+        $group: {
+          _id: '$course._id',
+          revenue: { $sum: '$amount' },
+          enrollments: { $sum: 1 },
+          courseTitle: { $first: '$course.courseTitle' }
+        }
+      },
+      {
+        $sort: { revenue: -1 }
+      },
+      {
+        $limit: 10
+      }
+    ]);
+
+    // Payment methods and status
+    const paymentStats = await Payment.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          amount: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      analytics: {
+        period,
+        revenueByMonth,
+        revenueByCourse,
+        paymentStats,
+        totalRevenue: revenueByMonth.reduce((sum, item) => sum + item.revenue, 0),
+        totalTransactions: revenueByMonth.reduce((sum, item) => sum + item.transactions, 0)
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching revenue analytics',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get course analytics
+// @route   GET /api/admin/dashboard/course-analytics
+// @access  Admin
+const getCourseAnalytics = async (req, res) => {
+  try {
+    // Most popular courses by enrollments
+    const popularCourses = await Enrollment.aggregate([
+      {
+        $group: {
+          _id: '$course',
+          enrollments: { $sum: 1 },
+          completed: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          }
+        }
+      },
+      {
+        $lookup: {
+          from: 'courses',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'course'
+        }
+      },
+      {
+        $unwind: '$course'
+      },
+      {
+        $project: {
+          courseTitle: '$course.courseTitle',
+          category: '$course.category',
+          price: '$course.price',
+          enrollments: 1,
+          completed: 1,
+          completionRate: {
+            $multiply: [
+              { $divide: ['$completed', '$enrollments'] },
+              100
+            ]
+          }
+        }
+      },
+      {
+        $sort: { enrollments: -1 }
+      },
+      {
+        $limit: 10
+      }
+    ]);
+
+    // Course categories distribution
+    const categories = await Course.aggregate([
+      {
+        $group: {
+          _id: '$category',
+          count: { $sum: 1 },
+          totalEnrollments: { $sum: '$totalStudents' }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      }
+    ]);
+
+    // Course performance by completion rate
+    const coursePerformance = await Enrollment.aggregate([
+      {
+        $lookup: {
+          from: 'courses',
+          localField: 'course',
+          foreignField: '_id',
+          as: 'course'
+        }
+      },
+      {
+        $unwind: '$course'
+      },
+      {
+        $group: {
+          _id: '$course._id',
+          courseTitle: { $first: '$course.courseTitle' },
+          totalEnrollments: { $sum: 1 },
+          completedEnrollments: {
+            $sum: { $cond: [{ $eq: ['$status', 'completed'] }, 1, 0] }
+          },
+          averageProgress: { $avg: '$progress' }
+        }
+      },
+      {
+        $project: {
+          courseTitle: 1,
+          totalEnrollments: 1,
+          completedEnrollments: 1,
+          completionRate: {
+            $multiply: [
+              { $divide: ['$completedEnrollments', '$totalEnrollments'] },
+              100
+            ]
+          },
+          averageProgress: 1
+        }
+      },
+      {
+        $sort: { completionRate: -1 }
+      },
+      {
+        $limit: 10
+      }
+    ]);
+
+    res.json({
+      success: true,
+      analytics: {
+        popularCourses,
+        categories,
+        coursePerformance,
+        totalCourses: await Course.countDocuments({ isActive: true }),
+        totalEnrollments: await Enrollment.countDocuments()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching course analytics',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get user analytics
+// @route   GET /api/admin/dashboard/user-analytics
+// @access  Admin
+const getUserAnalytics = async (req, res) => {
+  try {
+    // User growth over time
+    const userGrowth = await User.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' }
+          },
+          count: { $sum: 1 },
+          students: {
+            $sum: { $cond: [{ $eq: ['$role', 'student'] }, 1, 0] }
+          },
+          admins: {
+            $sum: { $cond: [{ $eq: ['$role', 'admin'] }, 1, 0] }
+          }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 }
+      }
+    ]);
+
+    // Active users (users with enrollments)
+    const activeUsers = await Enrollment.distinct('student');
+    
+    // User engagement (users who completed courses)
+    const engagedUsers = await Enrollment.distinct('student', { 
+      status: 'completed' 
+    });
+
+    // Geographic distribution (if you have location data)
+    const geographicDistribution = await User.aggregate([
+      {
+        $match: {
+          'location.country': { $exists: true, $ne: '' }
+        }
+      },
+      {
+        $group: {
+          _id: '$location.country',
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { count: -1 }
+      },
+      {
+        $limit: 10
+      }
+    ]);
+
+    res.json({
+      success: true,
+      analytics: {
+        userGrowth,
+        activeUsers: activeUsers.length,
+        engagedUsers: engagedUsers.length,
+        engagementRate: activeUsers.length > 0 ? 
+          (engagedUsers.length / activeUsers.length) * 100 : 0,
+        geographicDistribution,
+        totalUsers: await User.countDocuments()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching user analytics',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Get recent activities
+// @route   GET /api/admin/dashboard/recent-activities
+// @access  Admin
+const getRecentActivities = async (req, res) => {
+  try {
+    const { limit = 20 } = req.query;
+
+    // Recent enrollments
+    const recentEnrollments = await Enrollment.find()
+      .populate('student', 'FullName email')
+      .populate('course', 'courseTitle')
+      .sort({ enrolledAt: -1 })
+      .limit(parseInt(limit) / 2);
+
+    // Recent payments
+    const recentPayments = await Payment.find({ status: 'captured' })
+      .populate('student', 'FullName email')
+      .populate('course', 'courseTitle')
+      .sort({ paidAt: -1 })
+      .limit(parseInt(limit) / 2);
+
+    // Recent course completions
+    const recentCompletions = await Enrollment.find({ status: 'completed' })
+      .populate('student', 'FullName email')
+      .populate('course', 'courseTitle')
+      .sort({ completedAt: -1 })
+      .limit(parseInt(limit) / 2);
+
+    // Combine and sort all activities
+    const activities = [
+      ...recentEnrollments.map(enrollment => ({
+        type: 'enrollment',
+        user: enrollment.student.FullName,
+        course: enrollment.course.courseTitle,
+        timestamp: enrollment.enrolledAt,
+        description: `${enrollment.student.FullName} enrolled in ${enrollment.course.courseTitle}`
+      })),
+      ...recentPayments.map(payment => ({
+        type: 'payment',
+        user: payment.student.FullName,
+        course: payment.course.courseTitle,
+        timestamp: payment.paidAt,
+        description: `${payment.student.FullName} paid ₹${payment.amount} for ${payment.course.courseTitle}`,
+        amount: payment.amount
+      })),
+      ...recentCompletions.map(completion => ({
+        type: 'completion',
+        user: completion.student.FullName,
+        course: completion.course.courseTitle,
+        timestamp: completion.completedAt,
+        description: `${completion.student.FullName} completed ${completion.course.courseTitle}`
+      }))
+    ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+     .slice(0, parseInt(limit));
+
+    res.json({
+      success: true,
+      activities,
+      count: activities.length
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching recent activities',
+      error: error.message
+    });
+  }
+};
+
+
+
+
 module.exports = {
   // User Management
   getAllUsers,
   getUserById,
   updatedUser,
   deleteUser,
-  
   // Course Management
   getAllCourses,
   getSingleCourse,
@@ -737,5 +1215,10 @@ module.exports = {
   updateCourse,
   deleteCourse,
   updateCourseStatus,
-  recalculateCourseDuration
+  recalculateCourseDuration,
+  getDashboardStats,
+  getRevenueAnalytics,
+  getCourseAnalytics,
+  getUserAnalytics,
+  getRecentActivities
 };

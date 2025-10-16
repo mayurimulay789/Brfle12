@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import adminAPI from './../api/adminApi';
 
-// ----------------- Dashboard -----------------
+// ----------------- Dashboard Thunks -----------------
 const fetchDashboardStats = createAsyncThunk(
   "admin/fetchDashboardStats",
   async (_, { rejectWithValue }) => {
@@ -14,7 +14,55 @@ const fetchDashboardStats = createAsyncThunk(
   }
 );
 
-// ----------------- Users -----------------
+const fetchRevenueAnalytics = createAsyncThunk(
+  "admin/fetchRevenueAnalytics",
+  async (params, { rejectWithValue }) => {
+    try {
+      const response = await adminAPI.getRevenueAnalytics(params);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch revenue analytics");
+    }
+  }
+);
+
+const fetchCourseAnalytics = createAsyncThunk(
+  "admin/fetchCourseAnalytics",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await adminAPI.getCourseAnalytics();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch course analytics");
+    }
+  }
+);
+
+const fetchUserAnalytics = createAsyncThunk(
+  "admin/fetchUserAnalytics",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await adminAPI.getUserAnalytics();
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch user analytics");
+    }
+  }
+);
+
+const fetchRecentActivities = createAsyncThunk(
+  "admin/fetchRecentActivities",
+  async (params, { rejectWithValue }) => {
+    try {
+      const response = await adminAPI.getRecentActivities(params);
+      return response.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to fetch recent activities");
+    }
+  }
+);
+
+// ----------------- Users Thunks -----------------
 const fetchAllUsers = createAsyncThunk(
   "admin/fetchAllUsers",
   async (params, { rejectWithValue }) => {
@@ -51,19 +99,11 @@ const deleteUser = createAsyncThunk(
   }
 );
 
-// Add the missing bulkUserAction export
 const bulkUserAction = createAsyncThunk(
   "admin/bulkUserAction",
   async ({ userIds, action }, { rejectWithValue }) => {
     try {
-      // Since we don't have a bulk API endpoint, we'll simulate it
-      // You can implement this properly when you have the backend endpoint
       console.log('Bulk user action:', { userIds, action });
-      
-      // Simulate API call - replace with actual API when available
-      // const response = await adminAPI.bulkUserAction(userIds, { action });
-      
-      // For now, return a mock success response
       return {
         success: true,
         message: `Bulk action '${action}' completed successfully for ${userIds.length} users`,
@@ -75,12 +115,10 @@ const bulkUserAction = createAsyncThunk(
   }
 );
 
-// Add the missing updateUserStatus export
 const updateUserStatus = createAsyncThunk(
   "admin/updateUserStatus",
   async ({ userId, isActive }, { rejectWithValue }) => {
     try {
-      // Since we don't have a specific status endpoint, we'll use the update user endpoint
       const response = await adminAPI.updateUserRole(userId, { isActive });
       return response.data;
     } catch (error) {
@@ -89,7 +127,7 @@ const updateUserStatus = createAsyncThunk(
   }
 );
 
-// ----------------- Courses -----------------
+// ----------------- Courses Thunks -----------------
 const fetchAllCourses = createAsyncThunk(
   "admin/fetchAllCourses",
   async (params, { rejectWithValue }) => {
@@ -171,6 +209,15 @@ const initialState = {
   // Dashboard
   dashboardStats: null,
   dashboardLoading: false,
+  revenueAnalytics: null,
+  revenueLoading: false,
+  courseAnalytics: null,
+  courseAnalyticsLoading: false,
+  userAnalytics: null,
+  userAnalyticsLoading: false,
+  recentActivities: [],
+  recentActivitiesLoading: false,
+  dashboardError: null,
   
   // Users
   users: [],
@@ -221,12 +268,25 @@ const adminSlice = createSlice({
   reducers: {
     clearError: (state) => {
       state.error = null;
+      state.dashboardError = null;
     },
     clearSuccess: (state) => {
       state.success = null;
     },
     setLoading: (state, action) => {
       state.loading = action.payload;
+    },
+    
+    // Dashboard reducers
+    setDashboardPeriod: (state, action) => {
+      state.dashboardPeriod = action.payload;
+    },
+    clearDashboardData: (state) => {
+      state.dashboardStats = null;
+      state.revenueAnalytics = null;
+      state.courseAnalytics = null;
+      state.userAnalytics = null;
+      state.recentActivities = [];
     },
     
     // User management reducers
@@ -314,21 +374,78 @@ const adminSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      // Dashboard
+      // Dashboard Cases
       .addCase(fetchDashboardStats.pending, (state) => {
         state.dashboardLoading = true;
-        state.error = null;
+        state.dashboardError = null;
       })
       .addCase(fetchDashboardStats.fulfilled, (state, action) => {
         state.dashboardLoading = false;
-        state.dashboardStats = action.payload;
+        state.dashboardStats = action.payload.stats || action.payload.data;
+        state.dashboardError = null;
       })
       .addCase(fetchDashboardStats.rejected, (state, action) => {
         state.dashboardLoading = false;
-        state.error = action.payload;
+        state.dashboardError = action.payload;
       })
       
-      // Users
+      .addCase(fetchRevenueAnalytics.pending, (state) => {
+        state.revenueLoading = true;
+        state.dashboardError = null;
+      })
+      .addCase(fetchRevenueAnalytics.fulfilled, (state, action) => {
+        state.revenueLoading = false;
+        state.revenueAnalytics = action.payload.analytics || action.payload.data;
+        state.dashboardError = null;
+      })
+      .addCase(fetchRevenueAnalytics.rejected, (state, action) => {
+        state.revenueLoading = false;
+        state.dashboardError = action.payload;
+      })
+      
+      .addCase(fetchCourseAnalytics.pending, (state) => {
+        state.courseAnalyticsLoading = true;
+        state.dashboardError = null;
+      })
+      .addCase(fetchCourseAnalytics.fulfilled, (state, action) => {
+        state.courseAnalyticsLoading = false;
+        state.courseAnalytics = action.payload.analytics || action.payload.data;
+        state.dashboardError = null;
+      })
+      .addCase(fetchCourseAnalytics.rejected, (state, action) => {
+        state.courseAnalyticsLoading = false;
+        state.dashboardError = action.payload;
+      })
+      
+      .addCase(fetchUserAnalytics.pending, (state) => {
+        state.userAnalyticsLoading = true;
+        state.dashboardError = null;
+      })
+      .addCase(fetchUserAnalytics.fulfilled, (state, action) => {
+        state.userAnalyticsLoading = false;
+        state.userAnalytics = action.payload.analytics || action.payload.data;
+        state.dashboardError = null;
+      })
+      .addCase(fetchUserAnalytics.rejected, (state, action) => {
+        state.userAnalyticsLoading = false;
+        state.dashboardError = action.payload;
+      })
+      
+      .addCase(fetchRecentActivities.pending, (state) => {
+        state.recentActivitiesLoading = true;
+        state.dashboardError = null;
+      })
+      .addCase(fetchRecentActivities.fulfilled, (state, action) => {
+        state.recentActivitiesLoading = false;
+        state.recentActivities = action.payload.activities || action.payload.data || [];
+        state.dashboardError = null;
+      })
+      .addCase(fetchRecentActivities.rejected, (state, action) => {
+        state.recentActivitiesLoading = false;
+        state.dashboardError = action.payload;
+      })
+      
+      // Users Cases
       .addCase(fetchAllUsers.pending, (state) => {
         state.usersLoading = true;
         state.error = null;
@@ -356,7 +473,6 @@ const adminSlice = createSlice({
         state.success = "User deleted successfully";
       })
       
-      // Handle bulkUserAction
       .addCase(bulkUserAction.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -364,7 +480,6 @@ const adminSlice = createSlice({
       .addCase(bulkUserAction.fulfilled, (state, action) => {
         state.loading = false;
         state.success = action.payload.message;
-        // Clear selected users after bulk action
         state.selectedUsers = [];
       })
       .addCase(bulkUserAction.rejected, (state, action) => {
@@ -372,7 +487,6 @@ const adminSlice = createSlice({
         state.error = action.payload;
       })
       
-      // Handle updateUserStatus
       .addCase(updateUserStatus.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -389,7 +503,7 @@ const adminSlice = createSlice({
         state.error = action.payload;
       })
 
-      // Courses
+      // Courses Cases
       .addCase(fetchAllCourses.pending, (state) => {
         state.coursesLoading = true;
         state.error = null;
@@ -400,7 +514,6 @@ const adminSlice = createSlice({
         const responseData = action.payload;
         console.log("Processing courses response:", responseData);
         
-        // Handle different response structures
         if (responseData.success) {
           state.courses = responseData.data || responseData.courses || [];
           state.coursesPagination = responseData.pagination;
@@ -445,7 +558,6 @@ const adminSlice = createSlice({
           if (index !== -1) {
             state.courses[index] = updatedCourse;
           } else {
-            // If course not found in list, add it (might be a new course)
             state.courses.unshift(updatedCourse);
           }
         }
@@ -497,6 +609,8 @@ export const {
   clearError, 
   clearSuccess, 
   setLoading,
+  setDashboardPeriod,
+  clearDashboardData,
   setUsersSearchTerm,
   setUsersFilterRole,
   setSelectedUsers,
@@ -517,12 +631,21 @@ export const {
 
 // Export all async thunks
 export {
+  // Dashboard
   fetchDashboardStats,
+  fetchRevenueAnalytics,
+  fetchCourseAnalytics,
+  fetchUserAnalytics,
+  fetchRecentActivities,
+  
+  // Users
   fetchAllUsers,
   updateUserRole,
   deleteUser,
   bulkUserAction,
   updateUserStatus,
+  
+  // Courses
   fetchAllCourses,
   updateCourseStatus,
   deleteCourse,

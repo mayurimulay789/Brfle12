@@ -28,30 +28,26 @@ export default function Courses() {
     setFormSubmitted(false);
   };
 
-  const closeModal = () => {
-    setSelectedCourse(null);
-    setShowForm(false);
-    setShowCheckoutButton(false);
-    setFormSubmitted(false);
-  };
-
   const handleProceedToCheckout = async () => {
     if (selectedCourse) {
       try {
         // Create payment order
         const result = await dispatch(createPaymentOrder(selectedCourse._id)).unwrap();
-        
-        // Navigate to checkout page
-        navigate("/checkout", { 
-          state: { 
+
+        // Navigate to checkout with course and order data
+        navigate("/checkout", {
+          state: {
             course: selectedCourse,
             order: result.order,
             razorpayKey: result.key
-          } 
+          }
         });
-        
+
         // Reset modal state
-        closeModal();
+        setSelectedCourse(null);
+        setShowForm(false);
+        setShowCheckoutButton(false);
+        setFormSubmitted(false);
       } catch (error) {
         console.error("Failed to create payment order:", error);
         alert("Failed to proceed to checkout. Please try again.");
@@ -123,7 +119,7 @@ export default function Courses() {
           {courses.map((course, index) => (
             <div
               key={course._id || index}
-              className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col hover:shadow-xl transition-shadow duration-300"
+              className="rounded-xl overflow-hidden shadow-md bg-white flex flex-col"
             >
               <img
                 src={course.courseImage?.url || "/default-course.jpg"}
@@ -155,8 +151,8 @@ export default function Courses() {
         <div className="fixed inset-0 flex items-center justify-center bg-black/70 backdrop-blur-sm z-50 p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full p-6 relative shadow-lg overflow-y-auto max-h-[90vh]">
             <button
-              onClick={closeModal}
-              className="absolute top-2 right-3 text-gray-500 hover:text-black text-2xl font-bold z-10"
+              onClick={() => setSelectedCourse(null)}
+              className="absolute top-2 right-3 text-gray-500 hover:text-black text-2xl font-bold"
             >
               ✕
             </button>
@@ -164,7 +160,7 @@ export default function Courses() {
             {/* Show course info or Google Form */}
             {!showForm ? (
               <>
-                {selectedCourse.coursePreviewVideo?.url ? (
+                {selectedCourse.coursePreviewVideo?.url && (
                   <video
                     src={selectedCourse.coursePreviewVideo.url}
                     className="w-full h-56 object-cover rounded-lg mb-4"
@@ -172,31 +168,42 @@ export default function Courses() {
                     autoPlay
                     muted
                   />
-                ) : (
-                  <img
-                    src={selectedCourse.courseImage?.url || "/default-course.jpg"}
-                    alt={selectedCourse.courseTitle}
-                    className="w-full h-56 object-cover rounded-lg mb-4"
-                  />
                 )}
-                
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
                   {selectedCourse.courseTitle}
                 </h2>
 
                 <div className="space-y-4 text-gray-700">
                   <div>
-                    <h3 className="font-semibold text-gray-900">Course Benefits</h3>
-                    <p className="text-sm">{selectedCourse.description || "Comprehensive course with hands-on learning"}</p>
+                    <h3 className="font-semibold text-gray-900 mb-4">Course Benefits</h3>
+                    <ul className="space-y-2 text-gray-700">
+                      <li className="flex items-start">
+                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>Master industry-relevant skills with hands-on projects</span>
+                      </li>
+                      <li className="flex items-start">
+                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>Learn from expert instructors with real-world experience</span>
+                      </li>
+                      <li className="flex items-start">
+                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                        <span>Get lifetime access to course materials and updates</span>
+                      </li>
+
+
+                    </ul>
+                    {/* <p className="text-sm">{selectedCourse.description || "Comprehensive course with hands-on learning"}</p> */}
                   </div>
-                  
-                  {selectedCourse.courseGuide && (
-                    <div>
-                      <h3 className="font-semibold text-gray-900">Course Guide</h3>
-                      <p className="text-sm">{selectedCourse.courseGuide}</p>
-                    </div>
-                  )}
-                  
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Course Guide</h3>
+                    <p className="text-sm">{selectedCourse.courseGuide || "Step-by-step learning path"}</p>
+                  </div>
                   <div>
                     <h3 className="font-semibold text-gray-900">Course Summary</h3>
                     <p className="text-sm">{selectedCourse.courseSummary}</p>
@@ -233,9 +240,9 @@ export default function Courses() {
             ) : (
               <>
                 <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-                  Enrollment Form - {selectedCourse.courseTitle}
+                  Enrollment Form
                 </h2>
-                
+
                 {showCheckoutButton ? (
                   <div className="text-center">
                     <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
@@ -262,13 +269,12 @@ export default function Courses() {
                       marginHeight="0"
                       marginWidth="0"
                       title="Google Form"
-                      className="rounded-lg"
                     >
                       Loading…
                     </iframe>
                     <div className="mt-4 text-center">
                       <button
-                        onClick={handleProceedToCheckout}
+                        onClick={handleFormSubmission}
                         className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
                       >
                         I've Submitted the Form - Proceed to Checkout

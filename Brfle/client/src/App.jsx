@@ -22,7 +22,12 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import MyProfile from './pages/MyProfile';
 import PaymentSuccess from "./components/PaymentSuccess.jsx";
 import MyCourses from "./components/MyCourses.jsx";
-import Chatbot from "./components/Chatbot.jsx";
+import Chatbot from "./components/Chatbox.jsx";
+import WatchCourse from "./components/WatchCourse.jsx";
+import ReadCourseBook from "./components/ReadCourseBook.jsx";
+import ReadProjectBook from "./components/ReadProjectBook.jsx";
+import McqQuestions from "./components/McqQuestions.jsx";
+import GenerateCertificate from "./components/GenerateCertificate.jsx";
 
 // Import the new components
 import QuestionAnswer from "./components/QuestionAnswer.jsx";
@@ -88,13 +93,61 @@ function AppContent() {
 
           {/* Course Learning Routes with Points System */}
           <Route 
-            path="/course/:courseId/learn" 
+            path="/course/:courseId/course-progress" 
             element={
               <ProtectedRoute>
                 <CourseProgress />
               </ProtectedRoute>
             } 
           />
+          <Route 
+            path="/course/:courseId/watch" 
+            element={
+              <ProtectedRoute>
+                <WatchCourse />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/course/:courseId/course-book" 
+            element={
+              <ProtectedRoute>
+                <ReadCourseBook />
+              </ProtectedRoute>
+            } 
+          />
+          <Route
+            path="/course/:courseId/project-book"
+            element={
+              <ProtectedRoute>
+                <ReadProjectBook />
+              </ProtectedRoute>
+            }
+            />
+          <Route
+            path="/course/:courseId/attempt-test"
+            element={
+              <ProtectedRoute>
+                <McqQuestions />
+              </ProtectedRoute>
+            }
+            />
+          <Route
+            path="/course/:courseId/experience"
+            element={
+              <ProtectedRoute>
+                <ExperienceDiary />
+              </ProtectedRoute>
+            }
+            />
+          <Route
+            path="/course/:courseId/certificate"
+            element={
+              <ProtectedRoute>
+                <GenerateCertificate />
+              </ProtectedRoute>
+            }
+            />
           <Route 
             path="/course/:courseId/qa" 
             element={
@@ -175,14 +228,6 @@ function AppContent() {
                     </div>
                   </div>
                 </div>
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/course/:courseId/diary" 
-            element={
-              <ProtectedRoute>
-                <ExperienceDiary />
               </ProtectedRoute>
             } 
           />

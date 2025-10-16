@@ -1,335 +1,3 @@
-// const Course = require('../model/Course');
-// const Progress = require('../model/Progress');
-
-// // @desc    Get all courses with filtering and pagination
-// // @route   GET /api/courses
-// // @access  Public
-// const getCourses = async (req, res) => {
-//   try {
-//     const {
-//       page = 1,
-//       limit = 10,
-//       search,
-//       category,
-//       level,
-//       minPrice,
-//       maxPrice,
-//       minRating,
-//       instructor,
-//       featured,
-//       popular,
-//       sortBy = 'createdAt',
-//       sortOrder = 'desc'
-//     } = req.query;
-
-//     // Build query
-//     let query = Course.find().published();
-
-//     // Search
-//     if (search) {
-//       query = Course.find({ 
-//         $text: { $search: search },
-//         isPublished: true,
-//         status: 'published'
-//       }).sort({ score: { $meta: "textScore" } });
-//     }
-
-//     // Filters
-//     if (category) query = query.byCategory(category);
-//     if (level) query = query.byLevel(level);
-//     if (minPrice || maxPrice) {
-//       const min = minPrice ? parseFloat(minPrice) : 0;
-//       const max = maxPrice ? parseFloat(maxPrice) : Number.MAX_SAFE_INTEGER;
-//       query = query.inPriceRange(min, max);
-//     }
-//     if (minRating) query = query.withMinRating(parseFloat(minRating));
-//     if (instructor) query = query.byInstructor(instructor);
-//     if (featured === 'true') query = query.featured();
-//     if (popular === 'true') query = query.popular();
-
-//     // Sorting
-//     const sortOptions = {};
-//     sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
-//     query = query.sort(sortOptions);
-
-//     // Pagination
-//     const skip = (page - 1) * limit;
-//     query = query.skip(skip).limit(parseInt(limit));
-
-//     // Execute query
-//     const courses = await query.populate('createdBy', 'FullName email profile');
-//     const total = await Course.countDocuments(query.getFilter());
-
-//     res.json({
-//       success: true,
-//       count: courses.length,
-//       pagination: {
-//         page: parseInt(page),
-//         pages: Math.ceil(total / limit),
-//         total
-//       },
-//       data: courses
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: 'Error fetching courses',
-//       error: error.message
-//     });
-//   }
-// };
-
-// // @desc    Get single course
-// // @route   GET /api/courses/:id
-// // @access  Public
-// const getCourse = async (req, res) => {
-//   try {
-//     const course = await Course.findById(req.params.id)
-//       .populate('createdBy', 'FullName email profile')
-//       .populate('reviews.user', 'FullName profile');
-
-//     if (!course) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Course not found'
-//       });
-//     }
-
-//     // Increment views
-//     await course.incrementViews();
-
-//     res.json({
-//       success: true,
-//       data: course
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: 'Error fetching course',
-//       error: error.message
-//     });
-//   }
-// };
-
-// // @desc    Create course
-// // @route   POST /api/courses
-// // @access  Private/Instructor
-// const createCourse = async (req, res) => {
-//   try {
-//     const courseData = {
-//       ...req.body,
-//       createdBy: req.user._id
-//     };
-
-//     const course = await Course.create(courseData);
-
-//     res.status(201).json({
-//       success: true,
-//       message: 'Course created successfully',
-//       data: course
-//     });
-
-//   } catch (error) {
-//     res.status(400).json({
-//       success: false,
-//       message: 'Error creating course',
-//       error: error.message
-//     });
-//   }
-// };
-
-// // @desc    Update course
-// // @route   PUT /api/courses/:id
-// // @access  Private/Instructor
-// const updateCourse = async (req, res) => {
-//   try {
-//     let course = await Course.findById(req.params.id);
-
-//     if (!course) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Course not found'
-//       });
-//     }
-
-//     // Check if user is the course creator or admin
-//     if (course.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Not authorized to update this course'
-//       });
-//     }
-
-//     course = await Course.findByIdAndUpdate(
-//       req.params.id,
-//       req.body,
-//       { new: true, runValidators: true }
-//     ).populate('createdBy', 'FullName email profile');
-
-//     res.json({
-//       success: true,
-//       message: 'Course updated successfully',
-//       data: course
-//     });
-
-//   } catch (error) {
-//     res.status(400).json({
-//       success: false,
-//       message: 'Error updating course',
-//       error: error.message
-//     });
-//   }
-// };
-
-// // @desc    Delete course
-// // @route   DELETE /api/courses/:id
-// // @access  Private/Instructor
-// const deleteCourse = async (req, res) => {
-//   try {
-//     const course = await Course.findById(req.params.id);
-
-//     if (!course) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Course not found'
-//       });
-//     }
-
-//     // Check if user is the course creator or admin
-//     if (course.createdBy.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Not authorized to delete this course'
-//       });
-//     }
-
-//     await Course.findByIdAndDelete(req.params.id);
-
-//     res.json({
-//       success: true,
-//       message: 'Course deleted successfully'
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: 'Error deleting course',
-//       error: error.message
-//     });
-//   }
-// };
-
-// // @desc    Add lesson to course
-// // @route   POST /api/courses/:id/lessons
-// // @access  Private/Instructor
-// const addLesson = async (req, res) => {
-//   try {
-//     const course = await Course.findById(req.params.id);
-
-//     if (!course) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Course not found'
-//       });
-//     }
-
-//     // Check if user is the course creator
-//     if (course.createdBy.toString() !== req.user._id.toString()) {
-//       return res.status(403).json({
-//         success: false,
-//         message: 'Not authorized to add lessons to this course'
-//       });
-//     }
-
-//     await course.addLesson(req.body);
-
-//     res.status(201).json({
-//       success: true,
-//       message: 'Lesson added successfully',
-//       data: course
-//     });
-
-//   } catch (error) {
-//     res.status(400).json({
-//       success: false,
-//       message: 'Error adding lesson',
-//       error: error.message
-//     });
-//   }
-// };
-
-// // @desc    Add review to course
-// // @route   POST /api/courses/:id/reviews
-// // @access  Private
-// const addReview = async (req, res) => {
-//   try {
-//     console.log(req.user);
-//     console.log(req.body);
-//     const course = await Course.findById(req.params.id);
-
-//     if (!course) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Course not found'
-//       });
-//     }
-
-//     const reviewData = {
-//       ...req.body,
-//       user: req.user._id
-//     };
-
-//     await course.addReview(reviewData);
-
-//     res.status(201).json({
-//       success: true,
-//       message: 'Review added successfully',
-//       data: course
-//     });
-
-//   } catch (error) {
-//     res.status(400).json({
-//       success: false,
-//       message: 'Error adding review',
-//       error: error.message
-//     });
-//   }
-// };
-
-// // @desc    Get course statistics
-// // @route   GET /api/courses/stats/overview
-// // @access  Private/Admin
-// const getCourseStats = async (req, res) => {
-//   try {
-//     const stats = await Course.getCourseStats();
-    
-//     res.json({
-//       success: true,
-//       data: stats[0] || {}
-//     });
-
-//   } catch (error) {
-//     res.status(500).json({
-//       success: false,
-//       message: 'Error fetching course statistics',
-//       error: error.message
-//     });
-//   }
-// };
-
-// module.exports = {
-//   getCourses,
-//   getCourse,
-//   createCourse,
-//   updateCourse,
-//   deleteCourse,
-//   addLesson,
-//   addReview,
-//   getCourseStats
-// };
-
 const Course = require('../model/Course');
 const Lesson = require('../model/Lesson');
 const Enrollment = require('../model/Enrollment');
@@ -599,21 +267,60 @@ const updateCourse = async (req, res) => {
 
     const updates = { ...req.body };
     
-    // Handle image update
-    if (req.file) {
-      // Delete old image
-      if (course.courseImage.public_id) {
-        await deleteFromCloudinary(course.courseImage.public_id);
+    // Handle file updates
+    if (req.files) {
+      // Update course image if provided
+      if (req.files.courseImage && req.files.courseImage[0]) {
+        // Delete old image
+        if (course.courseImage.public_id) {
+          await deleteFromCloudinary(course.courseImage.public_id);
+        }
+        
+        updates.courseImage = {
+          public_id: req.files.courseImage[0].public_id,
+          url: req.files.courseImage[0].path
+        };
       }
-      
-      updates.courseImage = {
-        public_id: req.file.public_id,
-        url: req.file.path
-      };
+
+      // Update preview video if provided
+      if (req.files.previewVideo && req.files.previewVideo[0]) {
+        if (course.coursePreviewVideo.public_id) {
+          await deleteFromCloudinary(course.coursePreviewVideo.public_id, 'video');
+        }
+        
+        updates.coursePreviewVideo = {
+          public_id: req.files.previewVideo[0].public_id,
+          url: req.files.previewVideo[0].path
+        };
+      }
+
+      // Update course book if provided
+      if (req.files.courseBook && req.files.courseBook[0]) {
+        if (course.courseBook.public_id) {
+          await deleteFromCloudinary(course.courseBook.public_id, 'raw');
+        }
+        
+        updates.courseBook = {
+          public_id: req.files.courseBook[0].public_id,
+          url: req.files.courseBook[0].path
+        };
+      }
+
+      // Update project PDF if provided
+      if (req.files.projectPDF && req.files.projectPDF[0]) {
+        if (course.projectPDF.public_id) {
+          await deleteFromCloudinary(course.projectPDF.public_id, 'raw');
+        }
+        
+        updates.projectPDF = {
+          public_id: req.files.projectPDF[0].public_id,
+          url: req.files.projectPDF[0].path
+        };
+      }
     }
 
     // Parse tags if they exist
-    if (updates.tags) {
+    if (updates.tags && typeof updates.tags === 'string') {
       updates.tags = JSON.parse(updates.tags);
     }
 
@@ -629,9 +336,20 @@ const updateCourse = async (req, res) => {
       course: updatedCourse
     });
   } catch (error) {
-    // Delete uploaded image if update fails
-    if (req.file) {
-      await deleteFromCloudinary(req.file.public_id);
+    // Delete uploaded files if update fails
+    if (req.files) {
+      for (const fieldName in req.files) {
+        const files = req.files[fieldName];
+        for (const file of files) {
+          if (file.public_id) {
+            let resourceType = 'image';
+            if (file.mimetype.startsWith('video/')) resourceType = 'video';
+            if (file.mimetype.includes('pdf')) resourceType = 'raw';
+            
+            await deleteFromCloudinary(file.public_id, resourceType);
+          }
+        }
+      }
     }
     
     res.status(500).json({
@@ -879,7 +597,7 @@ const createMCQTest = async (req, res) => {
       if (!question.question || !question.options || question.options.length !== 4) {
         return res.status(400).json({
           success: false,
-          message: `Question ${i + 1} must have a question  and exactly 4 options`
+          message: `Question ${i + 1} must have a question and exactly 4 options`
         });
       }
       if (question.correctAnswer === undefined || question.correctAnswer < 0 || question.correctAnswer > 3) {
@@ -900,10 +618,15 @@ const createMCQTest = async (req, res) => {
 
     await course.save();
 
+    // ✅ IMPORTANT: Populate the course to get full data
+    const updatedCourse = await Course.findById(req.params.id)
+      .populate('createdBy', 'name email')
+      .populate('experiences.student', 'name profilePicture');
+
     res.status(201).json({
       success: true,
       message: 'MCQ test created successfully',
-      mcqTest: course.mcqTest
+      course: updatedCourse // ✅ Return full course object
     });
   } catch (error) {
     res.status(500).json({
@@ -913,6 +636,7 @@ const createMCQTest = async (req, res) => {
     });
   }
 };
+
 
 // @desc    Update MCQ test
 // @route   PUT /api/courses/:id/mcq-test
@@ -955,10 +679,15 @@ const updateMCQTest = async (req, res) => {
 
     await course.save();
 
+    // ✅ IMPORTANT: Populate the course to get full data
+    const updatedCourse = await Course.findById(req.params.id)
+      .populate('createdBy', 'name email')
+      .populate('experiences.student', 'name profilePicture');
+
     res.json({
       success: true,
       message: 'MCQ test updated successfully',
-      mcqTest: course.mcqTest
+      course: updatedCourse // ✅ Return full course object
     });
   } catch (error) {
     res.status(500).json({
@@ -1351,6 +1080,40 @@ const deleteCourse = async (req, res) => {
   }
 };
 
+// @desc    Get MCQ test
+// @route   GET /api/courses/:id/mcq-test
+// @access  Public
+const getMCQTest = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id).select('mcqTest');
+
+    if (!course) {
+      return res.status(404).json({
+        success: false,
+        message: 'Course not found'
+      });
+    }
+
+    if (!course.mcqTest) {
+      return res.status(404).json({
+        success: false,
+        message: 'MCQ test not found for this course'
+      });
+    }
+
+    res.json({
+      success: true,
+      mcqTest: course.mcqTest
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching MCQ test',
+      error: error.message
+    });
+  }
+};
+
 
 // At the end of courseController.js, ensure you have:
 module.exports = {
@@ -1371,5 +1134,6 @@ module.exports = {
   attemptMCQTest,
   getTestAttempts,
   getCoursesByCategory,
-  updateCourseStatus
+  updateCourseStatus,
+  getMCQTest
 };

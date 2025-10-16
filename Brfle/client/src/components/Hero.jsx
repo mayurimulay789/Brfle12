@@ -1079,7 +1079,7 @@ const Hero = () => {
                     alt={course.courseTitle || course.title}
                     className="w-80 h-48 object-cover"
                   />
-                  <h3 className="mt-4 mb-6 text-lg font-semibold text-gray-800 px-4">
+                  <h3 className="mt-2 mb-2 text-lg font-semibold text-gray-800 px-4">
                     {course.courseTitle || course.title}
                   </h3>
                   <h4 className="text-sm text-gray-500 mb-3">
