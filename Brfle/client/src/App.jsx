@@ -9,7 +9,6 @@ import Footer from "./components/Footer.jsx";
 import Hero from "./components/Hero.jsx";
 import About from "./pages/about.jsx";
 import Courses from "./pages/courses.jsx";
-import CourseDetail from "./pages/CourseDetail";
 import Checkout from './pages/Checkout';
 import Features from "./pages/features.jsx";
 import GlobalPresence from "./pages/globalpresence.jsx";

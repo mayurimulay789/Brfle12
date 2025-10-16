@@ -177,29 +177,30 @@ export default function Courses() {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-4">Course Benefits</h3>
                     <ul className="space-y-2 text-gray-700">
-                      <li className="flex items-start">
-                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span>Master industry-relevant skills with hands-on projects</span>
-                      </li>
-                      <li className="flex items-start">
-                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span>Learn from expert instructors with real-world experience</span>
-                      </li>
-                      <li className="flex items-start">
-                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span>Get lifetime access to course materials and updates</span>
-                      </li>
-
-
+                      {(selectedCourse.courseBenifits || "Comprehensive course with hands-on learning")
+                        .split('\n')
+                        .filter(line => line.trim() !== "") // remove empty lines
+                        .map((benefit, index) => (
+                          <li key={index} className="flex items-start">
+                            <svg
+                              className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            <span>{benefit}</span>
+                          </li>
+                        ))}
                     </ul>
-                    {/* <p className="text-sm">{selectedCourse.description || "Comprehensive course with hands-on learning"}</p> */}
                   </div>
+
                   <div>
                     <h3 className="font-semibold text-gray-900">Course Guide</h3>
                     <p className="text-sm">{selectedCourse.courseGuide || "Step-by-step learning path"}</p>
