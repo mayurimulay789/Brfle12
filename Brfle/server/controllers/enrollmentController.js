@@ -1,3 +1,4 @@
+// 
 const Enrollment = require('../model/Enrollment');
 const Course = require('../model/Course');
 const Lesson = require('../model/Lesson');
@@ -6,7 +7,7 @@ const Payment = require('../model/Payment');
 // @desc    Enroll in a course
 // @route   POST /api/enrollments/courses/:courseId
 // @access  Private
-exports.enrollInCourse = async (req, res) => {
+const enrollInCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
 
@@ -54,10 +55,28 @@ exports.enrollInCourse = async (req, res) => {
       }
     }
 
-    // Create enrollment
+    // Create enrollment with section progress
     const enrollment = new Enrollment({
       student: req.user.id,
-      course: courseId
+      course: courseId,
+      sectionProgress: {
+        lessons: 0,
+        courseBook: 0,
+        projectBook: 0,
+        test: 0,
+        experience: 0
+      },
+      completedSections: {
+        lessons: false,
+        courseBook: false,
+        projectBook: false,
+        test: false,
+        experience: false
+      },
+      accessedMaterials: {
+        courseBook: false,
+        projectBook: false
+      }
     });
 
     await enrollment.save();
@@ -83,7 +102,7 @@ exports.enrollInCourse = async (req, res) => {
 // @desc    Get user's enrollments
 // @route   GET /api/enrollments/my-courses
 // @access  Private
-exports.getMyEnrollments = async (req, res) => {
+const getMyEnrollments = async (req, res) => {
   try {
     const enrollments = await Enrollment.find({ 
       student: req.user.id 
@@ -139,7 +158,7 @@ exports.getMyEnrollments = async (req, res) => {
 // @desc    Get enrollment status for a course
 // @route   GET /api/enrollments/courses/:courseId
 // @access  Private
-exports.getEnrollmentStatus = async (req, res) => {
+const getEnrollmentStatus = async (req, res) => {
   try {
     const { courseId } = req.params;
 
@@ -179,7 +198,9 @@ exports.getEnrollmentStatus = async (req, res) => {
       progress: {
         completed: enrollment.completedLessons.length,
         total: totalLessons,
-        percentage: enrollment.progress
+        percentage: enrollment.progress,
+        sectionProgress: enrollment.sectionProgress,
+        completedSections: enrollment.completedSections
       }
     });
   } catch (error) {
@@ -194,7 +215,7 @@ exports.getEnrollmentStatus = async (req, res) => {
 // @desc    Cancel enrollment
 // @route   DELETE /api/enrollments/courses/:courseId
 // @access  Private
-exports.cancelEnrollment = async (req, res) => {
+const cancelEnrollment = async (req, res) => {
   try {
     const { courseId } = req.params;
 
@@ -233,7 +254,7 @@ exports.cancelEnrollment = async (req, res) => {
 // @desc    Get course progress
 // @route   GET /api/enrollments/courses/:courseId/progress
 // @access  Private
-exports.getCourseProgress = async (req, res) => {
+const getCourseProgress = async (req, res) => {
   try {
     const { courseId } = req.params;
 
@@ -254,7 +275,8 @@ exports.getCourseProgress = async (req, res) => {
       isActive: true 
     });
     
-    const progress = enrollment.calculateProgress(totalLessons);
+    // Ensure progress is calculated
+    enrollment.calculateProgress(totalLessons);
     await enrollment.save();
 
     const lessons = await Lesson.find({ 
@@ -276,10 +298,15 @@ exports.getCourseProgress = async (req, res) => {
     res.json({
       success: true,
       progress: {
-        percentage: progress,
+        overall: enrollment.progress,
+        percentage: enrollment.progress,
         completed: enrollment.completedLessons.length,
         total: totalLessons,
-        lessons: lessonsWithCompletion
+        lessons: lessonsWithCompletion,
+        // ✅ RETURN SECTION PROGRESS FOR 100-CREDIT SYSTEM
+        sectionProgress: enrollment.sectionProgress,
+        completedSections: enrollment.completedSections,
+        accessedMaterials: enrollment.accessedMaterials
       },
       enrollmentStatus: enrollment.status
     });
@@ -295,7 +322,7 @@ exports.getCourseProgress = async (req, res) => {
 // @desc    Mark lesson as completed
 // @route   POST /api/enrollments/courses/:courseId/lessons/:lessonId/complete
 // @access  Private
-exports.markLessonCompleted = async (req, res) => {
+const markLessonCompleted = async (req, res) => {
   try {
     const { courseId, lessonId } = req.params;
 
@@ -325,8 +352,79 @@ exports.markLessonCompleted = async (req, res) => {
       });
     }
 
-    enrollment.markLessonCompleted(lessonId);
+    // Mark lesson as completed
+    const wasMarked = enrollment.markLessonCompleted(lessonId);
     
+    if (!wasMarked) {
+      return res.status(400).json({
+        success: false,
+        message: 'Lesson already completed'
+      });
+    }
+
+    const totalLessons = await Lesson.countDocuments({ 
+      course: courseId, 
+      isActive: true 
+    });
+    
+    // Calculate progress with new 100-credit system
+    enrollment.calculateProgress(totalLessons);
+    enrollment.updateLastAccessed();
+
+    await enrollment.save();
+
+    res.json({
+      success: true,
+      message: 'Lesson marked as completed',
+      progress: {
+        overall: enrollment.progress,
+        lessons: enrollment.sectionProgress.lessons,
+        completedLessons: enrollment.completedLessons.length,
+        totalLessons,
+        isCourseCompleted: enrollment.status === 'completed'
+      },
+      sectionProgress: enrollment.sectionProgress
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error marking lesson as completed',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Mark material as accessed
+// @route   POST /api/enrollments/courses/:courseId/access-material
+// @access  Private
+const markMaterialAccessed = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { materialType } = req.body; // 'courseBook' or 'projectBook'
+
+    if (!['courseBook', 'projectBook'].includes(materialType)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid material type'
+      });
+    }
+
+    const enrollment = await Enrollment.findOne({
+      student: req.user.id,
+      course: courseId
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not enrolled in this course'
+      });
+    }
+
+    // Mark material as accessed and complete the section
+    enrollment.markMaterialAccessed(materialType);
+    
+    // Recalculate overall progress
     const totalLessons = await Lesson.countDocuments({ 
       course: courseId, 
       isActive: true 
@@ -338,16 +436,118 @@ exports.markLessonCompleted = async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Lesson marked as completed',
-      progress: enrollment.progress,
-      completedLessons: enrollment.completedLessons.length,
-      totalLessons,
-      isCourseCompleted: enrollment.status === 'completed'
+      message: `${materialType === 'courseBook' ? 'Course book' : 'Project book'} accessed and section completed`,
+      progress: {
+        overall: enrollment.progress,
+        ...enrollment.sectionProgress
+      },
+      sectionProgress: enrollment.sectionProgress
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: 'Error marking lesson as completed',
+      message: 'Error accessing material',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Add test attempt
+// @route   POST /api/enrollments/courses/:courseId/test-attempt
+// @access  Private
+const addTestAttempt = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { score, percentage, passed } = req.body;
+
+    const enrollment = await Enrollment.findOne({
+      student: req.user.id,
+      course: courseId
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not enrolled in this course'
+      });
+    }
+
+    // Add test attempt
+    enrollment.addTestAttempt(score, percentage, passed);
+    
+    // Recalculate overall progress
+    const totalLessons = await Lesson.countDocuments({ 
+      course: courseId, 
+      isActive: true 
+    });
+    enrollment.calculateProgress(totalLessons);
+    enrollment.updateLastAccessed();
+
+    await enrollment.save();
+
+    res.json({
+      success: true,
+      message: passed ? 'Test passed! Section completed.' : 'Test attempt recorded.',
+      progress: {
+        overall: enrollment.progress,
+        ...enrollment.sectionProgress
+      },
+      sectionProgress: enrollment.sectionProgress
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error recording test attempt',
+      error: error.message
+    });
+  }
+};
+
+// @desc    Add experience
+// @route   POST /api/enrollments/courses/:courseId/experience
+// @access  Private
+const addExperience = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    const enrollment = await Enrollment.findOne({
+      student: req.user.id,
+      course: courseId
+    });
+
+    if (!enrollment) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not enrolled in this course'
+      });
+    }
+
+    // Add experience and complete section
+    enrollment.addExperience();
+    
+    // Recalculate overall progress
+    const totalLessons = await Lesson.countDocuments({ 
+      course: courseId, 
+      isActive: true 
+    });
+    enrollment.calculateProgress(totalLessons);
+    enrollment.updateLastAccessed();
+
+    await enrollment.save();
+
+    res.json({
+      success: true,
+      message: 'Experience added and section completed',
+      progress: {
+        overall: enrollment.progress,
+        ...enrollment.sectionProgress
+      },
+      sectionProgress: enrollment.sectionProgress
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error adding experience',
       error: error.message
     });
   }
@@ -356,7 +556,7 @@ exports.markLessonCompleted = async (req, res) => {
 // @desc    Mark lesson as uncompleted
 // @route   POST /api/enrollments/courses/:courseId/lessons/:lessonId/uncomplete
 // @access  Private
-exports.markLessonUncompleted = async (req, res) => {
+const markLessonUncompleted = async (req, res) => {
   try {
     const { courseId, lessonId } = req.params;
 
@@ -411,7 +611,7 @@ exports.markLessonUncompleted = async (req, res) => {
 // @desc    Get certificate
 // @route   GET /api/enrollments/courses/:courseId/certificate
 // @access  Private
-exports.getCertificate = async (req, res) => {
+const getCertificate = async (req, res) => {
   try {
     const { courseId } = req.params;
 
@@ -445,11 +645,7 @@ exports.getCertificate = async (req, res) => {
     // Check if user passed the MCQ test (if exists)
     const course = await Course.findById(courseId);
     if (course && course.mcqTest) {
-      const studentAttempts = course.testAttempts.filter(
-        attempt => attempt.student.toString() === req.user.id
-      );
-      
-      const passedAttempt = studentAttempts.find(attempt => attempt.passed);
+      const passedAttempt = enrollment.testAttempts.find(attempt => attempt.passed);
       
       if (!passedAttempt) {
         return res.status(400).json({
@@ -459,13 +655,15 @@ exports.getCertificate = async (req, res) => {
       }
     }
 
-    // Generate certificate data (in real app, you'd generate a PDF)
+    // Generate certificate data
     const certificate = {
       studentName: req.user.name,
       courseTitle: enrollment.course.courseTitle,
       completionDate: enrollment.completedAt,
       certificateId: `CERT-${enrollment._id.toString().slice(-8).toUpperCase()}`,
-      issuedAt: new Date()
+      issuedAt: new Date(),
+      progress: enrollment.progress,
+      sectionProgress: enrollment.sectionProgress
     };
 
     res.json({
@@ -484,7 +682,7 @@ exports.getCertificate = async (req, res) => {
 // @desc    Get enrollment analytics (Admin only)
 // @route   GET /api/enrollments/admin/analytics
 // @access  Admin
-exports.getEnrollmentAnalytics = async (req, res) => {
+const getEnrollmentAnalytics = async (req, res) => {
   try {
     const totalEnrollments = await Enrollment.countDocuments();
     const activeEnrollments = await Enrollment.countDocuments({ status: 'active' });
@@ -561,7 +759,7 @@ exports.getEnrollmentAnalytics = async (req, res) => {
 // @desc    Get course enrollments (Admin only)
 // @route   GET /api/enrollments/admin/courses/:courseId/enrollments
 // @access  Admin
-exports.getCourseEnrollments = async (req, res) => {
+const getCourseEnrollments = async (req, res) => {
   try {
     const { courseId } = req.params;
 
@@ -591,3 +789,21 @@ exports.getCourseEnrollments = async (req, res) => {
     });
   }
 };
+
+
+module.exports = {
+  enrollInCourse,
+  getMyEnrollments,
+  getEnrollmentStatus,
+  cancelEnrollment,
+  getCourseProgress,
+  markLessonCompleted,
+  markMaterialAccessed,
+  addTestAttempt,
+  addExperience,
+  markLessonUncompleted,
+  getCertificate,
+  getEnrollmentAnalytics,
+  getCourseEnrollments
+};
+

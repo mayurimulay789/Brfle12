@@ -83,13 +83,13 @@ export default function Navbar() {
 
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border border-gray-200">
-                  <Link
+                  {/* <Link
                     to="/dashboard"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
                     onClick={() => setDropdownOpen(false)}
                   >
                     Dashboard
-                  </Link>
+                  </Link> */}
 
                   {user?.role === 'admin' && (
                     <Link
@@ -101,16 +101,7 @@ export default function Navbar() {
                     </Link>
                   )}
 
-                  {user?.role === 'instructor' && (
-                    <Link
-                      to="/instructor-panel"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
-                      onClick={() => setDropdownOpen(false)}
-                    >
-                      Instructor Panel
-                    </Link>
-                  )}
-
+                  
                   <Link
                     to="/my-courses"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
@@ -119,13 +110,13 @@ export default function Navbar() {
                     My Courses
                   </Link>
 
-                  <Link
+                  {/* <Link
                     to="/certificates"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 border-b border-gray-100"
                     onClick={() => setDropdownOpen(false)}
                   >
                     Certificates
-                  </Link>
+                  </Link> */}
 
                   <Link
                     to="/myprofile"

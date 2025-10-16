@@ -25,9 +25,27 @@ const createFormDataHeaders = () => {
 
 // ----------------- Admin API -----------------
 const adminAPI = {
-  // Dashboard Stats
+  // Dashboard Analytics
   getDashboardStats: () =>
     axios.get(`${API_URL}/admin/dashboard/stats`, createAuthHeaders()),
+  
+  getRevenueAnalytics: (params) =>
+    axios.get(`${API_URL}/admin/dashboard/revenue-analytics`, {
+      ...createAuthHeaders(),
+      params,
+    }),
+  
+  getCourseAnalytics: () =>
+    axios.get(`${API_URL}/admin/dashboard/course-analytics`, createAuthHeaders()),
+  
+  getUserAnalytics: () =>
+    axios.get(`${API_URL}/admin/dashboard/user-analytics`, createAuthHeaders()),
+  
+  getRecentActivities: (params) =>
+    axios.get(`${API_URL}/admin/dashboard/recent-activities`, {
+      ...createAuthHeaders(),
+      params,
+    }),
 
   // User Management
   getAllUsers: (params) =>
@@ -35,14 +53,16 @@ const adminAPI = {
       ...createAuthHeaders(),
       params,
     }),
+  
   updateUserRole: (userId, data) =>
     axios.put(`${API_URL}/admin/users/${userId}/role`, data, createAuthHeaders()),
+  
   deleteUser: (userId) =>
     axios.delete(`${API_URL}/admin/users/${userId}`, createAuthHeaders()),
   
-  // Add these if you have the backend endpoints, otherwise they'll be simulated
   updateUserStatus: (userId, data) =>
     axios.put(`${API_URL}/admin/users/${userId}/status`, data, createAuthHeaders()),
+  
   bulkUserAction: (userIds, data) =>
     axios.post(`${API_URL}/admin/users/bulk-action`, {
       userIds,
@@ -55,14 +75,19 @@ const adminAPI = {
       ...createAuthHeaders(),
       params,
     }),
+  
   createCourse: (courseData) =>
     axios.post(`${API_URL}/admin/courses`, courseData, createAuthHeaders()),
+  
   updateCourse: (courseId, courseData) =>
     axios.put(`${API_URL}/admin/courses/${courseId}`, courseData, createAuthHeaders()),
+  
   deleteCourse: (courseId) =>
     axios.delete(`${API_URL}/admin/courses/${courseId}`, createAuthHeaders()),
+  
   updateCourseStatus: (courseId, data) =>
     axios.patch(`${API_URL}/admin/courses/${courseId}/status`, data, createAuthHeaders()),
+  
   recalculateCourseDuration: (courseId) =>
     axios.post(`${API_URL}/admin/courses/${courseId}/recalculate-duration`, {}, createAuthHeaders()),
 }

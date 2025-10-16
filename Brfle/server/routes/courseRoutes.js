@@ -33,8 +33,6 @@
 // router.get('/stats/overview', admin, getCourseStats);
 
 
-
-
 const express = require('express');
 const router = express.Router();
 const courseController = require('../controllers/courseController');
@@ -54,7 +52,6 @@ router.get('/:id', courseController.getCourse);
 router.get('/category/:category', courseController.getCoursesByCategory);
 
 // ==================== PROTECTED ROUTES (ADMIN ONLY) ====================
-// ✅ FIXED: Use generic uploader for all file types
 router.post('/', 
   protect, 
   admin, 
@@ -87,7 +84,12 @@ router.post('/',
 router.put('/:id', 
   protect, 
   admin, 
-  genericUploader.single('courseImage'), 
+  genericUploader.fields([
+    { name: 'courseImage', maxCount: 1 },
+    { name: 'previewVideo', maxCount: 1 },
+    { name: 'courseBook', maxCount: 1 },
+    { name: 'projectPDF', maxCount: 1 }
+  ]), 
   courseController.updateCourse
 );
 
@@ -127,6 +129,8 @@ router.post('/:id/certificate-template',
 );
 
 // ==================== MCQ TEST MANAGEMENT ====================
+// ✅ ADDED: Get MCQ test route
+router.get('/:id/mcq-test', courseController.getMCQTest);
 router.post('/:id/mcq-test', protect, admin, courseController.createMCQTest);
 router.put('/:id/mcq-test', protect, admin, courseController.updateMCQTest);
 router.delete('/:id/mcq-test', protect, admin, courseController.deleteMCQTest);

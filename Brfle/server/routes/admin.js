@@ -12,7 +12,12 @@ const {
   updateCourse,
   deleteCourse,
   updateCourseStatus,
-  recalculateCourseDuration
+  recalculateCourseDuration,
+  getDashboardStats,
+  getRevenueAnalytics,
+  getCourseAnalytics,
+  getUserAnalytics,
+  getRecentActivities
 
 } = require('../controllers/adminController');
 
@@ -40,4 +45,35 @@ router.patch('/courses/:id/status', updateCourseStatus);
 router.post('/courses/:id/recalculate-duration', recalculateCourseDuration);
 
 
+router.get('/dashboard/stats', getDashboardStats);
+router.get('/dashboard/revenue-analytics', getRevenueAnalytics);
+router.get('/dashboard/course-analytics', getCourseAnalytics);
+router.get('/dashboard/user-analytics', getUserAnalytics);
+router.get('/dashboard/recent-activities', getRecentActivities);
+
+
 module.exports = router;
+
+
+// const express = require('express');
+// const router = express.Router();
+// const { protect, admin } = require('../middleware/auth');
+// const {
+//   getDashboardStats,
+//   getRevenueAnalytics,
+//   getCourseAnalytics,
+//   getUserAnalytics,
+//   getRecentActivities
+// } = require('../controllers/adminController');
+
+// // All routes are protected and admin only
+// router.use(protect, admin);
+
+// // Dashboard overview
+// router.get('/dashboard/stats', getDashboardStats);
+// router.get('/dashboard/revenue-analytics', getRevenueAnalytics);
+// router.get('/dashboard/course-analytics', getCourseAnalytics);
+// router.get('/dashboard/user-analytics', getUserAnalytics);
+// router.get('/dashboard/recent-activities', getRecentActivities);
+
+// module.exports = router;

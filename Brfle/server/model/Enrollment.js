@@ -1,73 +1,3 @@
-// const mongoose = require("mongoose");
-
-// const enrollmentSchema = new mongoose.Schema({
-//   user: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "User",
-//     required: true,
-//   },
-//   course: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "Course",
-//     required: true,
-//   },
-//   // 👇 make payment optional
-//   payment: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "Payment",
-//     required: false,
-//   },
-//   enrolledAt: {
-//     type: Date,
-//     default: Date.now,
-//   },
-//   // 👇 allow in-progress as valid status
-//   status: {
-//     type: String,
-//     enum: ["active", "completed", "suspended", "in-progress"], // add in-progress
-//     default: "in-progress",
-//   },
-//   progress: {
-//     completedLessons: [
-//       {
-//         lessonId: String,
-//         completedAt: Date,
-//       },
-//     ],
-//     totalLessons: {
-//       type: Number,
-//       default: 0,
-//     },
-//     completionPercentage: {
-//       type: Number,
-//       default: 0,
-//     },
-//     lastAccessedAt: {
-//       type: Date,
-//       default: Date.now,
-//     },
-//     timeSpent: {
-//       type: Number, // in minutes
-//       default: 0,
-//     },
-//   },
-//   certificate: {
-//     issued: {
-//       type: Boolean,
-//       default: false,
-//     },
-//     issuedAt: Date,
-//     certificateId: String,
-//   },
-// });
-
-// // Ensure unique enrollment per user per course
-// enrollmentSchema.index({ user: 1, course: 1 }, { unique: true });
-
-// module.exports = mongoose.model("Enrollment", enrollmentSchema);
-
-
-
 
 
 
@@ -77,6 +7,7 @@ const enrollmentSchema = new mongoose.Schema({
   student: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
+    
     required: true
   },
   course: {
@@ -104,6 +35,39 @@ const enrollmentSchema = new mongoose.Schema({
       default: Date.now
     }
   }],
+  
+  // ✅ ADD PERMANENT TRACKING FIELDS
+  sectionProgress: {
+    lessons: { type: Number, default: 0 },        // 20 credits max
+    courseBook: { type: Number, default: 0 },     // 20 credits max  
+    projectBook: { type: Number, default: 0 },    // 20 credits max
+    test: { type: Number, default: 0 },           // 20 credits max
+    experience: { type: Number, default: 0 }      // 20 credits max
+  },
+  
+  completedSections: {
+    lessons: { type: Boolean, default: false },
+    courseBook: { type: Boolean, default: false },
+    projectBook: { type: Boolean, default: false },
+    test: { type: Boolean, default: false },
+    experience: { type: Boolean, default: false }
+  },
+  
+  accessedMaterials: {
+    courseBook: { type: Boolean, default: false },
+    projectBook: { type: Boolean, default: false }
+  },
+  
+  testAttempts: [{
+    score: Number,
+    percentage: Number,
+    passed: Boolean,
+    attemptedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  
   completedAt: {
     type: Date
   },
@@ -130,26 +94,93 @@ enrollmentSchema.methods.updateLastAccessed = function() {
   this.lastAccessed = new Date();
 };
 
-// Calculate progress percentage
+// ✅ UPDATED: Calculate progress with 100-credit system
 enrollmentSchema.methods.calculateProgress = function(totalLessons) {
   if (totalLessons === 0) return 0;
-  this.progress = Math.round((this.completedLessons.length / totalLessons) * 100);
+  
+  // Calculate lessons progress (20 credits)
+  const lessonsProgress = (this.completedLessons.length / totalLessons) * 20;
+  this.sectionProgress.lessons = Math.min(lessonsProgress, 20);
+  
+  // Only give full 20 credits if ALL lessons are completed
+  if (this.completedLessons.length === totalLessons) {
+    this.sectionProgress.lessons = 20;
+    this.completedSections.lessons = true;
+  } else {
+    this.completedSections.lessons = false;
+  }
+  
+  // Calculate total progress (sum of all sections)
+  const total = Object.values(this.sectionProgress).reduce((sum, current) => sum + current, 0);
+  this.progress = Math.min(total, 100);
+  
+  // Mark course as completed if 100% progress
+  if (this.progress === 100 && !this.completedAt) {
+    this.completedAt = new Date();
+    this.status = 'completed';
+  }
+  
   return this.progress;
 };
 
-// Mark lesson as completed
+// ✅ UPDATED: Mark lesson as completed
 enrollmentSchema.methods.markLessonCompleted = function(lessonId) {
   if (!this.completedLessons.some(lesson => lesson.lesson.toString() === lessonId.toString())) {
     this.completedLessons.push({
       lesson: lessonId,
       completedAt: new Date()
     });
-    
-    // If all lessons are completed, mark course as completed
-    if (this.progress === 100 && !this.completedAt) {
-      this.completedAt = new Date();
-      this.status = 'completed';
-    }
+    return true; // Return success
+  }
+  return false; // Already completed
+};
+
+// ✅ NEW: Mark section as completed
+enrollmentSchema.methods.markSectionCompleted = function(sectionName) {
+  if (this.sectionProgress[sectionName] !== 20) {
+    this.sectionProgress[sectionName] = 20;
+    this.completedSections[sectionName] = true;
+    return true;
+  }
+  return false;
+};
+
+// ✅ NEW: Mark material as accessed
+enrollmentSchema.methods.markMaterialAccessed = function(materialType) {
+  this.accessedMaterials[materialType] = true;
+  
+  // Auto-complete section if material is accessed
+  if (materialType === 'courseBook' && !this.completedSections.courseBook) {
+    this.sectionProgress.courseBook = 20;
+    this.completedSections.courseBook = true;
+  }
+  
+  if (materialType === 'projectBook' && !this.completedSections.projectBook) {
+    this.sectionProgress.projectBook = 20;
+    this.completedSections.projectBook = true;
+  }
+};
+
+// ✅ NEW: Add test attempt
+enrollmentSchema.methods.addTestAttempt = function(score, percentage, passed) {
+  this.testAttempts.push({
+    score,
+    percentage,
+    passed,
+    attemptedAt: new Date()
+  });
+  
+  if (passed && !this.completedSections.test) {
+    this.sectionProgress.test = 20;
+    this.completedSections.test = true;
+  }
+};
+
+// ✅ NEW: Add experience
+enrollmentSchema.methods.addExperience = function() {
+  if (!this.completedSections.experience) {
+    this.sectionProgress.experience = 20;
+    this.completedSections.experience = true;
   }
 };
 
@@ -159,3 +190,6 @@ enrollmentSchema.methods.isCourseCompleted = function(totalLessons) {
 };
 
 module.exports = mongoose.model('Enrollment', enrollmentSchema);
+
+// Export the model like this instead:
+// module.exports = mongoose.models.Enrollment || mongoose.model('Enrollment', enrollmentSchema);
