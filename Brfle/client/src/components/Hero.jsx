@@ -1040,9 +1040,11 @@ const Hero = () => {
 
       {/* Courses Section with Redux Data */}
       <section className="py-16 bg-black overflow-hidden">
-        <h2 className="text-center text-2xl md:text-3xl font-bold text-white mb-10">
-          Select Course
-        </h2>
+        <div className="text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+            Select Course
+          </h2>
+        </div>
 
         {loading && (
           <div className="text-center text-white">
@@ -1083,12 +1085,33 @@ const Hero = () => {
                   <h4 className="text-sm text-gray-500 mb-3">
                     {course.category || "General"}
                   </h4>
-                  
                 </div>
               ))}
             </div>
           </div>
         )}
+
+        {/* Join Our Global Learning Community Section - FULL WIDTH */}
+        <div className="relative w-full mt-16 overflow-hidden">
+          <img 
+            src="/images/three.jpg" 
+            alt="Join Our Global Learning Community"
+            className="w-full h-60 md:h-[600px] object-cover"
+            onError={(e) => {
+              e.target.src = "/images/earth.jpeg"; // Fallback image
+            }}
+          />
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <div className="text-center text-white px-4">
+              <h3 className="text-3xl md:text-4xl text-white lg:text-3xl font-bold mb-5 drop-shadow-lg">
+                Join Our Global Learning Community
+              </h3>
+              <p className="text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto drop-shadow-md">
+                Connect with learners from around the world and transform your career
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Modal */}
         {selectedCourse && (
@@ -1201,7 +1224,7 @@ const Hero = () => {
                           onClick={handleFormSubmission}
                           className="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
                         >
-                          I've Submitted the Form - Proceed to Checkout
+                          I've Submitted the Form - Proceed To Checkout
                         </button>
                       </div>
                     </>
