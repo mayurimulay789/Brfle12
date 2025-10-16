@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchAllCourses } from "../store/slices/courseSlice";
 import { createPaymentOrder } from "../store/slices/paymentSlice";
 
-const googleFormLink = "https://docs.google.com/forms/d/e/1FAIpQLSdx2nW8wIvZOHT7k4w8mNzG-Va5e0K7w4URGhhO0G4GwqtUaw/viewform?embedded=true";
+const googleFormLink = "https://docs.google.com/forms/d/e/1FAIpQLSc4fy4tKIvNkEUdDhtm63CQWLNOH9qufQoL4Rndy-RnPz-yzg/viewform";
 
 export default function Courses() {
   const dispatch = useDispatch();
@@ -127,9 +127,9 @@ export default function Courses() {
                 className="w-full h-56 object-cover transition-transform duration-500 hover:scale-110"
               />
               <div className="p-4 text-center flex flex-col flex-1">
-                <p className="text-lg font-bold text-gray-900">{course.courseTitle}</p>
-                <p className="text-sm text-gray-500 mt-2">{course.category}</p>
-                <p className="text-xs text-gray-600 mt-2 line-clamp-3">{course.courseSummary}</p>
+                <p className="text-2xl font-bold text-gray-900">{course.courseTitle}</p>
+                <p className="text-[100%] text-gray-600 mt-2">{course.category}</p>
+                <p className="text-[100%] text-gray-700 mt-2 line-clamp-3">{course.courseSummary}</p>
                 <p className="text-lg font-bold text-gray-900 mt-2">
                   ₹{course.price?.toLocaleString() || "15,000"}
                 </p>

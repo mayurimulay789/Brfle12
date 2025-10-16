@@ -929,7 +929,7 @@ import { createPaymentOrder } from "../store/slices/paymentSlice";
 
 // 🧾 Google Form Link
 const googleFormLink =
-  "https://docs.google.com/forms/d/e/1FAIpQLSdx2nW8wIvZOHT7k4w8mNzG-Va5e0K7w4URGhhO0G4GwqtUaw/viewform?embedded=true";
+  "https://docs.google.com/forms/d/e/1FAIpQLSc4fy4tKIvNkEUdDhtm63CQWLNOH9qufQoL4Rndy-RnPz-yzg/viewform";
 
 // 🎥 Hero Section with Redux Integration
 const Hero = () => {
@@ -943,7 +943,7 @@ const Hero = () => {
   const [showCheckoutButton, setShowCheckoutButton] = useState(false);
   const [formSubmitted, setFormSubmitted] = useState(false);
 
-  const images = ["/h2.jpg", "/business.jpg", "/h3.jpeg", "/earth.jpeg"];
+  const images = ["/hhh.jpg", "/business.jpg", "/h3.jpeg", "/earth.jpeg"];
 
   useEffect(() => {
     // Fetch courses when component mounts
@@ -1040,8 +1040,8 @@ const Hero = () => {
 
       {/* Courses Section with Redux Data */}
       <section className="py-16 bg-black overflow-hidden">
-        <div className="text-center mb-10">
-          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+        <div className="text-center mb-12">
+          <h2 className="text-2xl md:text-4xl font-bold text-white mb-4">
             Select Course
           </h2>
         </div>
@@ -1066,8 +1066,8 @@ const Hero = () => {
         )}
 
         {!loading && displayCourses.length > 0 && (
-          <div className="relative w-full overflow-hidden">
-            <div className="flex animate-scroll gap-8">
+          <div className="relative w-full h-[70%] overflow-hidden">
+            <div className="flex animate-scroll gap-9">
               {allCourses.map((course, index) => (
                 <div
                   key={`${course._id || index}-${index}`}
@@ -1077,12 +1077,12 @@ const Hero = () => {
                   <img
                     src={course.courseImage?.url || course.image || "/default-course.jpg"}
                     alt={course.courseTitle || course.title}
-                    className="w-80 h-48 object-cover"
+                    className="w-80 h-[78%]  object-cover"
                   />
                   <h3 className="mt-2 mb-2 text-lg font-semibold text-gray-800 px-4">
                     {course.courseTitle || course.title}
                   </h3>
-                  <h4 className="text-sm text-gray-500 mb-3">
+                  <h4 className="text-[100%] text-gray-800 mb-2">
                     {course.category || "General"}
                   </h4>
                 </div>
