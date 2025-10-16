@@ -136,6 +136,7 @@ const createCourse = async (req, res) => {
     const {
       courseTitle,
       courseGuide,
+      courseBenifits,
       courseSummary,
       price,
       duration,
@@ -173,6 +174,7 @@ const createCourse = async (req, res) => {
     const courseData = {
       courseTitle,
       courseGuide,
+      courseBenifits,
       courseSummary,
       price: parseFloat(price),
       duration,

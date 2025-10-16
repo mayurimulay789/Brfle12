@@ -139,6 +139,10 @@ const courseSchema = new mongoose.Schema({
     required: true,
     maxlength: 2000
   },
+  courseBenifits: {
+    type: String,
+    maxlength: 2000
+  },
   courseSummary: {
     type: String,
     required: true,

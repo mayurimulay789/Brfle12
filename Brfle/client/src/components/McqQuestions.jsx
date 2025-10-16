@@ -46,7 +46,7 @@ const McqQuestions = () => {
   useEffect(() => {
     if (currentCourse?.mcqTest) {
       setTestData(currentCourse.mcqTest)
-      setTimeLeft(currentCourse.mcqTest.duration * 60) // Convert minutes to seconds
+      setTimeLeft(currentCourse.mcqTest.timeLimit * 60) // Convert minutes to seconds
     }
   }, [currentCourse])
 
@@ -319,7 +319,7 @@ const McqQuestions = () => {
                     setCurrentQuestion(0)
                     setAnswers({})
                     setFlaggedQuestions(new Set())
-                    setTimeLeft(testData.duration * 60)
+                    setTimeLeft(testData.timeLimit * 60)
                     setResult(null)
                   }}
                   className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
@@ -366,7 +366,7 @@ const McqQuestions = () => {
                 <Clock className="h-6 w-6 text-blue-600" />
                 <div>
                   <p className="font-semibold text-gray-900">Duration</p>
-                  <p className="text-gray-600">{testData.duration} minutes</p>
+                  <p className="text-gray-600">{testData.timeLimit} minutes</p>
                 </div>
               </div>
               
@@ -564,7 +564,8 @@ const McqQuestions = () => {
               {/* Question Text */}
               <div className="mb-8">
                 <h2 className="text-lg font-medium text-gray-900 mb-4 leading-relaxed">
-                  {currentQ.questionText}
+                  {currentQ.question}
+                  {console.log(currentQ)};
                 </h2>
                 
                 {currentQ.questionImage && (

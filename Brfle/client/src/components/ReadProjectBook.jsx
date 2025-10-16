@@ -36,9 +36,10 @@ const ReadProjectBook = () => {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [pdfViewerType, setPdfViewerType] = useState('iframe')
+  const [pdfViewerType, setPdfViewerType] = useState('direct') // Default to direct options
   const [urlStatus, setUrlStatus] = useState('checking')
   const [actualUrl, setActualUrl] = useState('')
+  const [fileBlobUrl, setFileBlobUrl] = useState('')
 
   const pdfContainerRef = useRef(null)
   const iframeRef = useRef(null)
@@ -62,180 +63,106 @@ const ReadProjectBook = () => {
     }
   }, [courseId, currentCourse, projectBookUrl])
 
-  // Fix Cloudinary URL for PDF delivery
+  // Fix Cloudinary URL for PDF display
   const fixCloudinaryUrl = (url) => {
     console.log("🔧 Fixing Cloudinary URL:", url)
     
-    let fixedUrl = url
+    if (!url) return null
     
-    // If it's a Cloudinary raw upload URL, we need to transform it for PDF delivery
+    // If it's already a working URL, return it
+    if (url.includes('.pdf')) return url
+    
+    // For Cloudinary raw URLs, add .pdf extension
     if (url.includes('cloudinary.com') && url.includes('/raw/upload/')) {
-      // Cloudinary raw uploads need special handling for PDFs
-      // Option 1: Try adding .pdf extension
-      if (!url.includes('.pdf')) {
-        fixedUrl = `${url}.pdf`
-        console.log("📄 Added .pdf extension:", fixedUrl)
+      // Fix duplicate path if exists
+      if (url.includes('lms/courses/documents/lms/courses/documents/')) {
+        const fixedPathUrl = url.replace('lms/courses/documents/lms/courses/documents/', 'lms/courses/documents/')
+        console.log("🔄 Fixed duplicate path URL:", fixedPathUrl)
+        return `${fixedPathUrl}.pdf`
       }
       
-      // Option 2: Use Cloudinary's transformation for forced download
-      // fixedUrl = url.replace('/raw/upload/', '/fl_attachment/raw/upload/')
+      return `${url}.pdf`
     }
     
-    // If it's a Cloudinary URL but serving as octet-stream, try different approaches
-    if (url.includes('cloudinary.com')) {
-      console.log("☁️ Cloudinary URL detected, trying different delivery methods...")
-      
-      // Method 1: Direct URL with extension
-      const method1 = `${url}.pdf`
-      
-      // Method 2: Force attachment (download)
-      const method2 = url.replace('/upload/', '/fl_attachment/upload/')
-      
-      // Method 3: Use raw delivery with explicit format
-      const method3 = url.includes('/raw/upload/') ? url : `${url}?format=pdf`
-      
-      console.log("🔄 Method 1 (with extension):", method1)
-      console.log("🔄 Method 2 (attachment):", method2)
-      console.log("🔄 Method 3 (raw):", method3)
-      
-      // Start with method 1
-      fixedUrl = method1
-    }
-    
-    return fixedUrl
+    return url
   }
 
-  // Validate and fix the URL
+  // Download file and create blob URL for direct display
+  const createBlobUrl = async (url) => {
+    try {
+      console.log("📥 Downloading file for blob creation...")
+      const response = await fetch(url)
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`)
+      }
+      
+      const blob = await response.blob()
+      console.log("📦 File blob:", blob.type, blob.size)
+      
+      // Create blob URL for direct display
+      const blobUrl = URL.createObjectURL(blob)
+      setFileBlobUrl(blobUrl)
+      return blobUrl
+    } catch (error) {
+      console.error("❌ Failed to create blob URL:", error)
+      throw error
+    }
+  }
+
+  // Simple URL validation
   const validateAndFixUrl = async (url) => {
     try {
       setUrlStatus('validating')
-      console.log("🔧 Validating URL:", url)
+      setLoading(true)
       
       let fixedUrl = fixCloudinaryUrl(url)
+      console.log("🔄 Fixed URL:", fixedUrl)
       setActualUrl(fixedUrl)
       
-      // Test if the fixed URL is accessible
-      await testUrlAccessibility(fixedUrl, url)
-      
-    } catch (error) {
-      console.error("❌ URL validation failed:", error)
-      setUrlStatus('validation-failed')
-      setError("Failed to validate PDF URL: " + error.message)
-      setLoading(false)
-    }
-  }
-
-  // Test URL accessibility with multiple fallbacks
-  const testUrlAccessibility = async (url, originalUrl) => {
-    try {
-      setUrlStatus('testing-access')
-      console.log("🧪 Testing URL accessibility:", url)
-      
-      const response = await fetch(url, { 
-        method: 'GET',
-        headers: {
-          'Accept': 'application/pdf, */*'
-        }
-      })
-      
-      console.log("📊 Response status:", response.status)
-      console.log("📊 Response headers:", Object.fromEntries(response.headers))
-      
-      if (response.ok) {
-        const contentType = response.headers.get('content-type')
-        console.log("📄 Content-Type:", contentType)
-        
-        if (contentType && (contentType.includes('application/pdf') || url.includes('.pdf'))) {
-          console.log("✅ Valid PDF URL")
-          setUrlStatus('valid-pdf')
-          setError(null)
-          
-          // Test if we can actually display it
-          await testPdfDisplay(url)
-        } else {
-          console.log("⚠️ URL accessible but Content-Type:", contentType)
-          
-          // Try alternative Cloudinary URL formats
-          await tryAlternativeUrls(originalUrl)
-        }
-      } else {
-        console.log("❌ URL returned status:", response.status)
-        // Try alternative URLs if this one fails
-        await tryAlternativeUrls(originalUrl)
-      }
-      
-    } catch (error) {
-      console.log("❌ URL accessibility test failed:", error)
-      // Try alternative URLs
-      await tryAlternativeUrls(originalUrl)
-    }
-  }
-
-  // Try alternative Cloudinary URL formats
-  const tryAlternativeUrls = async (originalUrl) => {
-    console.log("🔄 Trying alternative URL formats...")
-    
-    const alternatives = [
-      // Method 1: Add .pdf extension
-      `${originalUrl}.pdf`,
-      // Method 2: Force attachment
-      originalUrl.replace('/upload/', '/fl_attachment/upload/'),
-      // Method 3: Use raw delivery with explicit format
-      originalUrl.includes('/raw/upload/') ? originalUrl : `${originalUrl}?format=pdf`,
-      // Method 4: Try without the duplicate path
-      originalUrl.replace('lms/courses/documents/lms/courses/documents/', 'lms/courses/documents/')
-    ]
-    
-    for (let i = 0; i < alternatives.length; i++) {
-      const altUrl = alternatives[i]
-      console.log(`🔄 Trying alternative ${i + 1}:`, altUrl)
-      
+      // Test if URL is accessible
       try {
-        const response = await fetch(altUrl, { method: 'HEAD' })
+        const response = await fetch(fixedUrl, { method: 'HEAD' })
         if (response.ok) {
-          console.log(`✅ Alternative ${i + 1} works!`)
-          setActualUrl(altUrl)
           setUrlStatus('valid-pdf')
           setError(null)
-          return
+          
+          // Try to create blob URL for direct display
+          try {
+            await createBlobUrl(fixedUrl)
+          } catch (blobError) {
+            console.log("⚠️ Could not create blob URL, using direct URL")
+          }
+        } else {
+          setUrlStatus('not-accessible')
+          setError(`File returned status: ${response.status}`)
         }
-      } catch (error) {
-        console.log(`❌ Alternative ${i + 1} failed:`, error.message)
+      } catch (fetchError) {
+        setUrlStatus('network-error')
+        setError('Cannot access file')
       }
-    }
-    
-    // If all alternatives fail
-    setUrlStatus('all-alternatives-failed')
-    setError("Cannot find a working PDF URL. The file might be missing or in wrong format.")
-    setLoading(false)
-  }
-
-  // Test if PDF can actually be displayed
-  const testPdfDisplay = async (url) => {
-    try {
-      console.log("🎯 Testing PDF display capability...")
-      const response = await fetch(url)
-      const blob = await response.blob()
       
-      console.log("📦 Blob type:", blob.type)
-      console.log("📦 Blob size:", blob.size)
+      setLoading(false)
       
-      if (blob.type.includes('pdf') || blob.size > 1000) {
-        // Likely a valid PDF
-        console.log("✅ PDF appears valid")
-        setUrlStatus('valid-pdf')
-      } else {
-        console.log("❌ Blob doesn't appear to be PDF")
-        setUrlStatus('invalid-pdf-blob')
-        setError("The file doesn't appear to be a valid PDF")
-      }
     } catch (error) {
-      console.log("❌ PDF display test failed:", error)
-      setUrlStatus('display-test-failed')
-      setError("Cannot load PDF content: " + error.message)
-    } finally {
+      console.error("URL validation failed:", error)
+      setUrlStatus('error')
+      setError("Failed to validate file URL")
       setLoading(false)
     }
+  }
+
+  // Simple status message helper
+  const getStatusMessage = (status) => {
+    const messages = {
+      'checking': 'Checking file...',
+      'validating': 'Validating file URL...',
+      'valid-pdf': 'File ready for display',
+      'no-url': 'No file URL found for this course',
+      'not-accessible': 'File not accessible',
+      'network-error': 'Network error',
+      'error': 'Failed to load file'
+    }
+    return messages[status] || 'Loading...'
   }
 
   // Mark material as accessed when component mounts
@@ -245,6 +172,15 @@ const ReadProjectBook = () => {
       dispatch(markMaterialAccessed({ courseId, materialType: 'projectBook' }))
     }
   }, [courseId, dispatch, courseProgress, projectBookUrl])
+
+  // Clean up blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (fileBlobUrl) {
+        URL.revokeObjectURL(fileBlobUrl)
+      }
+    }
+  }, [fileBlobUrl])
 
   // Handle fullscreen changes
   useEffect(() => {
@@ -292,8 +228,20 @@ const ReadProjectBook = () => {
     console.log("📥 Download clicked, URL:", urlToUse)
     
     if (urlToUse) {
+      // For Cloudinary URLs, force download
+      let downloadUrl = urlToUse
+      if (urlToUse.includes('cloudinary.com')) {
+        if (!urlToUse.includes('fl_attachment')) {
+          downloadUrl = urlToUse.replace('/upload/', '/fl_attachment/upload/')
+        }
+        // Ensure .pdf extension for download
+        if (!downloadUrl.includes('.pdf')) {
+          downloadUrl = `${downloadUrl}.pdf`
+        }
+      }
+      
       const link = document.createElement('a')
-      link.href = urlToUse
+      link.href = downloadUrl
       link.download = `${currentCourse?.courseTitle || 'course'}-project-guide.pdf`
       link.target = '_blank'
       link.rel = 'noopener noreferrer'
@@ -302,7 +250,7 @@ const ReadProjectBook = () => {
       link.click()
       document.body.removeChild(link)
     } else {
-      alert("No valid PDF URL available for download")
+      alert("No valid file URL available for download")
     }
   }
 
@@ -311,6 +259,7 @@ const ReadProjectBook = () => {
     console.log("🖨️ Print clicked, URL:", urlToUse)
     
     if (urlToUse) {
+      // Open in new tab and print
       const printWindow = window.open(urlToUse, '_blank')
       if (printWindow) {
         printWindow.onload = () => {
@@ -318,7 +267,7 @@ const ReadProjectBook = () => {
         }
       }
     } else {
-      alert("No valid PDF URL available for printing")
+      alert("No valid file URL available for printing")
     }
   }
 
@@ -348,15 +297,15 @@ const ReadProjectBook = () => {
   }
 
   const handleLoad = () => {
-    console.log("✅ PDF loaded successfully")
+    console.log("✅ File loaded successfully")
     setLoading(false)
     setError(null)
   }
 
   const handleError = (error) => {
-    console.error('❌ PDF loading error:', error)
+    console.error('❌ File loading error:', error)
     setLoading(false)
-    setError('Failed to load the project guide. The file may be corrupted or unavailable.')
+    setError('Failed to load the project guide. Try downloading the file instead.')
   }
 
   const switchViewer = (viewerType) => {
@@ -371,7 +320,7 @@ const ReadProjectBook = () => {
     if (urlToUse) {
       window.open(urlToUse, '_blank')
     } else {
-      alert("No valid PDF URL available")
+      alert("No valid file URL available")
     }
   }
 
@@ -381,10 +330,6 @@ const ReadProjectBook = () => {
     setUrlStatus('checking')
     validateAndFixUrl(projectBookUrl)
   }
-
-  // Google Docs viewer URL (fallback)
-  const googleViewerUrl = (actualUrl || projectBookUrl) ? 
-    `https://docs.google.com/gview?url=${encodeURIComponent(actualUrl || projectBookUrl)}&embedded=true` : null
 
   // PDF display styles
   const pdfStyle = {
@@ -486,13 +431,12 @@ const ReadProjectBook = () => {
       <div className="bg-blue-50 border-b border-blue-200 p-4 no-print">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-blue-800">URL Status: 
+            <h3 className="text-sm font-semibold text-blue-800">Status: 
               <span className={`ml-2 ${
                 urlStatus === 'valid-pdf' ? 'text-green-600' : 
-                urlStatus.startsWith('http-error') ? 'text-red-600' :
-                'text-yellow-600'
+                'text-red-600'
               }`}>
-                {urlStatus}
+                {getStatusMessage(urlStatus)}
               </span>
             </h3>
             <button
@@ -505,17 +449,14 @@ const ReadProjectBook = () => {
           </div>
           
           {projectBookUrl && (
-            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="mt-2 text-xs">
               <div>
-                <strong>Original URL:</strong> 
-                <div className="break-all text-blue-600 mt-1">{projectBookUrl}</div>
+                <strong>File URL:</strong> 
+                <div className="break-all text-blue-600 mt-1">{actualUrl || projectBookUrl}</div>
               </div>
-              {actualUrl && actualUrl !== projectBookUrl && (
-                <div>
-                  <strong>Processed URL:</strong> 
-                  <div className="break-all text-green-600 mt-1">{actualUrl}</div>
-                </div>
-              )}
+              <div className="mt-1 text-orange-600">
+                <strong>Note:</strong> Use "Download" or "Open in New Tab" for best results
+              </div>
             </div>
           )}
         </div>
@@ -546,13 +487,12 @@ const ReadProjectBook = () => {
                   className="text-sm border border-gray-300 rounded px-2 py-1"
                   disabled={urlStatus !== 'valid-pdf'}
                 >
-                  <option value="iframe">Browser PDF Viewer</option>
-                  <option value="google">Google Docs Viewer</option>
-                  <option value="direct">Direct Link</option>
+                  <option value="direct">Download Options</option>
+                  <option value="iframe">Browser Viewer</option>
                 </select>
               </div>
 
-              {urlStatus === 'valid-pdf' && (
+              {urlStatus === 'valid-pdf' && pdfViewerType === 'iframe' && (
                 <div className="flex items-center space-x-1">
                   <button
                     onClick={handleZoomOut}
@@ -587,7 +527,7 @@ const ReadProjectBook = () => {
             <div className="flex items-center space-x-2">
               <button
                 onClick={handlePrint}
-                disabled={!projectBookUrl}
+                disabled={urlStatus !== 'valid-pdf'}
                 className="flex items-center space-x-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition-colors disabled:opacity-50"
               >
                 <Printer className="h-4 w-4" />
@@ -596,7 +536,7 @@ const ReadProjectBook = () => {
 
               <button
                 onClick={handleDownload}
-                disabled={!projectBookUrl}
+                disabled={urlStatus !== 'valid-pdf'}
                 className="flex items-center space-x-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50"
               >
                 <Download className="h-4 w-4" />
@@ -607,57 +547,81 @@ const ReadProjectBook = () => {
         </div>
       </div>
 
-      {/* PDF Viewer */}
+      {/* File Viewer */}
       <div ref={pdfContainerRef} className="flex-1 bg-gray-900 flex items-center justify-center p-4">
         {loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
               <p className="text-gray-600">Loading project guide...</p>
-              <p className="text-sm text-gray-500 mt-2">Status: {urlStatus}</p>
+              <p className="text-sm text-gray-500 mt-2">{getStatusMessage(urlStatus)}</p>
             </div>
           </div>
         )}
 
-        {urlStatus === 'valid-pdf' ? (
+        {urlStatus === 'valid-pdf' && actualUrl ? (
           <div className="w-full max-w-6xl bg-white rounded-lg shadow-2xl overflow-hidden">
             <div className="relative" style={pdfStyle}>
-              {pdfViewerType === 'iframe' && (
-                <iframe
-                  ref={iframeRef}
-                  src={`${actualUrl || projectBookUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                  className="w-full h-[75vh]"
-                  onLoad={handleLoad}
-                  onError={handleError}
-                  title={`${currentCourse.courseTitle} - Project Guide`}
-                  allow="fullscreen"
-                />
-              )}
-
-              {pdfViewerType === 'google' && googleViewerUrl && (
-                <iframe
-                  src={googleViewerUrl}
-                  className="w-full h-[75vh]"
-                  onLoad={handleLoad}
-                  onError={() => handleError('Google viewer failed')}
-                  title={`${currentCourse.courseTitle} - Project Guide (Google Viewer)`}
-                  allow="fullscreen"
-                />
-              )}
-
+              {/* Direct Options - Most reliable */}
               {pdfViewerType === 'direct' && (
                 <div className="flex flex-col items-center justify-center h-[75vh] p-8 text-center">
-                  <FileText className="h-16 w-16 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">PDF Ready</h3>
-                  <p className="text-gray-600 mb-6">Click below to open the PDF directly</p>
-                  <button
-                    onClick={openInNewTab}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-                  >
-                    <ExternalLink className="h-5 w-5" />
-                    <span>Open PDF in New Tab</span>
-                  </button>
+                  <FileText className="h-20 w-20 text-blue-500 mb-6" />
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">Project Guide Ready</h3>
+                  <p className="text-gray-600 mb-8 text-lg max-w-md">
+                    Choose how you want to access the project guide file:
+                  </p>
+                  <div className="space-y-4 w-full max-w-md">
+                    <button
+                      onClick={handleDownload}
+                      className="w-full bg-green-600 text-white px-8 py-4 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center space-x-3 text-lg font-medium"
+                    >
+                      <Download className="h-6 w-6" />
+                      <span>Download File</span>
+                    </button>
+                    
+                    <button
+                      onClick={openInNewTab}
+                      className="w-full bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center space-x-3 text-lg font-medium"
+                    >
+                      <ExternalLink className="h-6 w-6" />
+                      <span>Open in New Tab</span>
+                    </button>
+                    
+                    <button
+                      onClick={() => switchViewer('iframe')}
+                      className="w-full bg-purple-600 text-white px-8 py-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-3 text-lg font-medium"
+                    >
+                      <BookOpen className="h-6 w-6" />
+                      <span>Try Browser Viewer</span>
+                    </button>
+                  </div>
+                  
+                  <div className="mt-8 p-4 bg-yellow-50 rounded-lg border border-yellow-200 max-w-md">
+                    <p className="text-yellow-800 text-sm text-center">
+                      <strong>Tip:</strong> "Download" or "Open in New Tab" usually work best for Cloudinary files.
+                    </p>
+                  </div>
                 </div>
+              )}
+
+              {/* Browser PDF Viewer - may work for some files */}
+              {pdfViewerType === 'iframe' && (
+                <>
+                  <iframe
+                    ref={iframeRef}
+                    src={fileBlobUrl || actualUrl}
+                    className="w-full h-[75vh]"
+                    onLoad={handleLoad}
+                    onError={handleError}
+                    title={`${currentCourse.courseTitle} - Project Guide`}
+                    allow="fullscreen"
+                  />
+                  {!fileBlobUrl && (
+                    <div className="absolute bottom-4 left-4 bg-yellow-100 text-yellow-800 px-3 py-2 rounded text-sm">
+                      Using direct URL - may not display in all browsers
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -665,15 +629,13 @@ const ReadProjectBook = () => {
           <div className="w-full max-w-2xl bg-white rounded-lg shadow-2xl overflow-hidden">
             <div className="flex flex-col items-center justify-center h-[75vh] p-8 text-center">
               <AlertCircle className="h-16 w-16 text-yellow-400 mb-4" />
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">PDF Not Available</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                {loading ? 'Loading File...' : 'File Not Available'}
+              </h3>
               <p className="text-gray-600 mb-4">
-                {urlStatus === 'no-url' && "No PDF URL found for this course."}
-                {urlStatus === 'not-pdf' && "The URL does not point to a valid PDF file."}
-                {urlStatus === 'all-alternatives-failed' && "All alternative URL formats failed."}
-                {urlStatus === 'invalid-pdf-blob' && "The file doesn't appear to be a valid PDF."}
-                {urlStatus === 'display-test-failed' && "Cannot load PDF content."}
+                {error || 'The project guide file could not be loaded.'}
               </p>
-              <div className="space-y-2">
+              <div className="space-y-2 w-full max-w-xs">
                 <button
                   onClick={retryValidation}
                   className="w-full bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
@@ -682,7 +644,7 @@ const ReadProjectBook = () => {
                 </button>
                 <button
                   onClick={() => navigate(`/course/${courseId}/course-progress`)}
-                  className="w-full bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700 transition-colors"
+                  className="w-full bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
                 >
                   Back to Course Progress
                 </button>
@@ -691,7 +653,11 @@ const ReadProjectBook = () => {
           </div>
         )}
       </div>
-    </div>
+      <iframe src="https://res.cloudinary.com/dfrga8wea/raw/upload/v1760606926/lms/courses/documents/screencapture-localhost-3000-2025-09-27-10_26_30%20%281%29_1760606883857" 
+            width="100%" 
+            height="600px">
+    </iframe>
+    </div>  
   )
 }
 

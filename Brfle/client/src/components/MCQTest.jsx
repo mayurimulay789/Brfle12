@@ -234,7 +234,7 @@ const handleSaveOrUpdateTest = async () => {
             </button>
             <button
               onClick={onCancel}
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+              className="bg-red-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-red-400 border-red-500 transition-colors flex items-center space-x-2"
             >
               <X className="h-4 w-4" />
               <span>Cancel</span>
@@ -528,7 +528,7 @@ const handleSaveOrUpdateTest = async () => {
             )}
             <button
               onClick={onClose}
-              className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors"
+              className="bg-red-200 text-black px-6 py-2 rounded-lg hover:bg-red-400 transition-colors"
             >
               Cancel
             </button>

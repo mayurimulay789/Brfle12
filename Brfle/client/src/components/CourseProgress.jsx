@@ -321,7 +321,7 @@ const CourseProgress = () => {
           </div>
           <div className="w-full bg-gray-200 rounded-full h-4">
             <div 
-              className="bg-blue-600 h-4 rounded-full transition-all duration-500"
+              className="bg-green-600 h-4 rounded-full transition-all duration-500"
               style={{ width: `${totalProgress}%` }}
             ></div>
           </div>
@@ -415,10 +415,10 @@ const CourseProgress = () => {
                 className={`w-full py-2 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
                   section === 'certificate'
                     ? isCertificateAvailable()
-                      ? 'bg-green-600 text-white hover:bg-green-700'
+                      ? 'bg-green-200 text-green-900 border border-green-300 hover:bg-green-500'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : isSectionCompleted(section)
-                    ? 'bg-green-600 text-white hover:bg-green-700'
+                    ? 'bg-green-200 text-green-900 border border-green-300 hover:bg-green-500'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
                 }`}
                 disabled={section === 'certificate' && !isCertificateAvailable()}

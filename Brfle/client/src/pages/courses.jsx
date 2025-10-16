@@ -1,12 +1,10 @@
-
-
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { fetchAllCourses } from "../store/slices/courseSlice";
 import { createPaymentOrder } from "../store/slices/paymentSlice";
 
-const googleFormLink = "https://docs.google.com/forms/d/e/1FAIpQLSdx2nW8wIvZOHT7k4w8mNzG-Va5e0K7w4URGhhO0G4GwqtUaw/viewform?embedded=true";
+const googleFormLink = "https://docs.google.com/forms/d/e/1FAIpQLSc4fy4tKIvNkEUdDhtm63CQWLNOH9qufQoL4Rndy-RnPz-yzg/viewform";
 
 export default function Courses() {
   const dispatch = useDispatch();
@@ -129,9 +127,9 @@ export default function Courses() {
                 className="w-full h-56 object-cover transition-transform duration-500 hover:scale-110"
               />
               <div className="p-4 text-center flex flex-col flex-1">
-                <p className="text-lg font-bold text-gray-900">{course.courseTitle}</p>
-                <p className="text-sm text-gray-500 mt-2">{course.category}</p>
-                <p className="text-xs text-gray-600 mt-2 line-clamp-3">{course.courseSummary}</p>
+                <p className="text-2xl font-bold text-gray-900">{course.courseTitle}</p>
+                <p className="text-[100%] text-gray-600 mt-2">{course.category}</p>
+                <p className="text-[100%] text-gray-700 mt-2 line-clamp-3">{course.courseSummary}</p>
                 <p className="text-lg font-bold text-gray-900 mt-2">
                   ₹{course.price?.toLocaleString() || "15,000"}
                 </p>
@@ -179,29 +177,30 @@ export default function Courses() {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-4">Course Benefits</h3>
                     <ul className="space-y-2 text-gray-700">
-                      <li className="flex items-start">
-                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span>Master industry-relevant skills with hands-on projects</span>
-                      </li>
-                      <li className="flex items-start">
-                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span>Learn from expert instructors with real-world experience</span>
-                      </li>
-                      <li className="flex items-start">
-                        <svg className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-                        </svg>
-                        <span>Get lifetime access to course materials and updates</span>
-                      </li>
-
-
+                      {(selectedCourse.courseBenifits || "Comprehensive course with hands-on learning")
+                        .split('\n')
+                        .filter(line => line.trim() !== "") // remove empty lines
+                        .map((benefit, index) => (
+                          <li key={index} className="flex items-start">
+                            <svg
+                              className="h-5 w-5 text-green-500 mr-2 mt-0.5 flex-shrink-0"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M5 13l4 4L19 7"
+                              />
+                            </svg>
+                            <span>{benefit}</span>
+                          </li>
+                        ))}
                     </ul>
-                    {/* <p className="text-sm">{selectedCourse.description || "Comprehensive course with hands-on learning"}</p> */}
                   </div>
+
                   <div>
                     <h3 className="font-semibold text-gray-900">Course Guide</h3>
                     <p className="text-sm">{selectedCourse.courseGuide || "Step-by-step learning path"}</p>
