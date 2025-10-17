@@ -322,7 +322,7 @@ const McqQuestions = () => {
                     setTimeLeft(testData.timeLimit * 60)
                     setResult(null)
                   }}
-                  className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
+                  className="bg-gray-200 text-gray-900 border border-gray-500 px-6 py-3 rounded-lg hover:bg-gray-400 transition-colors flex items-center space-x-2"
                 >
                   <RotateCcw className="h-4 w-4" />
                   <span>Retake Test</span>

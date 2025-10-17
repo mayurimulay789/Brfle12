@@ -8,9 +8,11 @@ import "swiper/css/pagination";
 import { fetchAllCourses } from "../store/slices/courseSlice";
 import { createPaymentOrder } from "../store/slices/paymentSlice";
 
-// 🧾 Google Form Link
-const googleFormLink =
+// 🧾 Google Form Link from vite .env
+const googleFormLink =import.meta.env.VITE_GOOGLE_FORM_LINK ||
   "https://docs.google.com/forms/d/e/1FAIpQLSc4fy4tKIvNkEUdDhtm63CQWLNOH9qufQoL4Rndy-RnPz-yzg/viewform";
+  
+
 
 // 🎥 Hero Section with Redux Integration
 const Hero = () => {

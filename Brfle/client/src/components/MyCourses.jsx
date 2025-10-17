@@ -300,7 +300,7 @@ const MyCourses = () => {
                     className={`w-full py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2 ${
                       enrollment.progress === 100
                         ? 'bg-green-200 text-green-900 border border-green-300 hover:bg-green-500'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-blue-200 text-blue-900 border border-blue-400 hover:bg-blue-500'
                     }`}
                   >
                     <Play className="h-4 w-4 " />

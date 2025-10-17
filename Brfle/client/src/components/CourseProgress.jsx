@@ -419,7 +419,7 @@ const CourseProgress = () => {
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : isSectionCompleted(section)
                     ? 'bg-green-200 text-green-900 border border-green-300 hover:bg-green-500'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-blue-200 text-blue-900 border border-blue-400 hover:bg-blue-500'
                 }`}
                 disabled={section === 'certificate' && !isCertificateAvailable()}
               >

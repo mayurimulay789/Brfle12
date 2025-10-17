@@ -1,13 +1,8 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import paymentAPI from '../api/paymentAPI';
+import paymentAPI from '../api/paymentApi';
 
 // Get Razorpay key from environment variables
 const getRazorpayKey = () => {
-  // For Create React App, environment variables are available via process.env
-  // For Vite, you might need to use import.meta.env
-  if (typeof process !== 'undefined' && process.env.REACT_APP_RAZORPAY_KEY_ID) {
-    return process.env.REACT_APP_RAZORPAY_KEY_ID;
-  }
   
   // Fallback for Vite or other setups
   if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_RAZORPAY_KEY_ID) {
