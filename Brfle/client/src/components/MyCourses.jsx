@@ -105,7 +105,7 @@ const MyCourses = () => {
       <div className="max-w-7xl mx-auto px-4">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
             My Courses
           </h1>
           <p className="text-gray-600">
@@ -114,53 +114,53 @@ const MyCourses = () => {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6 ">
+          <div className="bg-white rounded-lg shadow-sm p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Courses</p>
-                <p className="text-2xl font-bold text-gray-900">{enrollments.length}</p>
+                <p className="text-xl font-bold text-gray-900">{enrollments.length}</p>
               </div>
-              <BookOpen className="h-8 w-8 text-blue-600" />
+              <BookOpen className="h-6 w-6 text-blue-600" />
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">In Progress</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xl font-bold text-gray-900">
                   {enrollments.filter(e => e.progress < 100).length}
                 </p>
               </div>
-              <TrendingUp className="h-8 w-8 text-yellow-600" />
+              <TrendingUp className="h-6 w-6 text-yellow-600" />
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Completed</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xl font-bold text-gray-900">
                   {enrollments.filter(e => e.progress === 100).length}
                 </p>
               </div>
-              <Play className="h-8 w-8 text-green-600" />
+              <Play className="h-6 w-6 text-green-600" />
             </div>
           </div>
           
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-lg shadow-sm p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Avg Progress</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-xl font-bold text-gray-700">
                   {enrollments.length > 0 
                     ? Math.round(enrollments.reduce((sum, e) => sum + e.progress, 0) / enrollments.length)
                     : 0
                   }%
                 </p>
               </div>
-              <Filter className="h-8 w-8 text-purple-600" />
+              <Filter className="h-6 w-6 text-purple-600" />
             </div>
           </div>
         </div>
@@ -254,7 +254,7 @@ const MyCourses = () => {
                   )}
                 </div>
 
-                <div className="p-6">
+                <div className="p-6 ">
                   {/* Course Title */}
                   <h3 className="text-lg font-semibold text-gray-900 mb-3 line-clamp-2">
                     {enrollment.course.courseTitle}
@@ -304,7 +304,7 @@ const MyCourses = () => {
                     }`}
                   >
                     <Play className="h-4 w-4" />
-                    <span>
+                    <span className="text-white">
                       { 
                        enrollment.progress > 0 ? 'Continue' : 'Start Learning'}
                     </span>

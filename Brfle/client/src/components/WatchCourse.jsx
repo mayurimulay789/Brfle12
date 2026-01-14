@@ -537,7 +537,7 @@ const WatchCourse = () => {
                           }`}
                         >
                           <CheckCircle className="h-4 w-4" />
-                          <span>
+                          <span className="text-white">
                             {manuallyMarked || autoMarkCompleted ? 'Marking...' : 'Mark Complete'}
                           </span>
                         </button>
@@ -585,8 +585,8 @@ const WatchCourse = () => {
                         onClick={handleNextLesson}
                         className="w-full bg-blue-600 hover:bg-blue-700 py-3 px-4 rounded-lg font-medium transition-colors flex items-center justify-center space-x-2"
                       >
-                        <Play className="h-4 w-4" />
-                        <span>Next: {getNextLesson().lessonTitle}</span>
+                        <Play className="h-4 w-4 text-white" />
+                        <span className="text-white">Next: {getNextLesson().lessonTitle}</span>
                       </button>
                     </div>
                   )}
@@ -605,17 +605,17 @@ const WatchCourse = () => {
             </div>
 
             <div className="flex-1 overflow-y-auto">
-              <div className="p-2">
+              <div className="p-2 ">
                 {lessons.map((lesson, index) => (
                   <div
                     key={lesson._id}
                     onClick={() => handleLessonClick(lesson)}
-                    className={`p-3  rounded-lg cursor-pointer transition-colors mb-1 ${
+                    className={`p-3  rounded-lg cursor-pointer transition-colors mb-1  ${
                       currentLesson?._id === lesson._id
                         ? 'bg-blue-600 text-white'
                         : isLessonCompleted(lesson._id)
                         ? 'bg-green-900 text-green-100'
-                        : 'hover:bg-gray-700 text-gray-300'
+                        : 'hover:bg-gray-700 text-gray-300 bg-gray-800'
                     }`}
                   >
                     <div className="flex items-start space-x-3">
@@ -627,7 +627,7 @@ const WatchCourse = () => {
                         )}
                       </div>
                       
-                      <div className="flex-1 min-w-0">
+                      <div className="flex-1 min-w-0 ">
                         <div className="flex items-start justify-between">
                           <h4 className={`text-sm font-medium ${
                             currentLesson?._id === lesson._id ? 'text-white' : 
@@ -645,7 +645,7 @@ const WatchCourse = () => {
                         <div className="flex items-center justify-between mt-1">
                           <div className="flex items-center space-x-2 text-xs text-white">
                             <Play className="h-3 w-3" />
-                            <span>{lesson.duration}</span>
+                            <span className="text-white">{lesson.duration}</span>
                           </div>
                           
                           {currentLesson?._id === lesson._id && isPlaying && (

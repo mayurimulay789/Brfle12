@@ -250,7 +250,7 @@ const CourseProgress = () => {
           
           <div className="flex flex-col md:flex-row md:items-center md:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              <h1 className="text-2xl font-bold text-gray-900 mb-2">
                 {currentCourse.courseTitle}
               </h1>
               <p className="text-gray-600">{currentCourse.courseSummary}</p>
@@ -269,46 +269,50 @@ const CourseProgress = () => {
         </div>
 
         {/* Course Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="flex items-center space-x-3">
-              <Clock className="h-8 w-8 text-blue-600" />
+            <div className="flex items-center  justify-around">
+              
               <div>
                 <p className="text-sm font-medium text-gray-600">Duration</p>
                 <p className="font-semibold text-gray-900">{currentCourse.duration}</p>
               </div>
+              <Clock className="h-6 w-6 text-blue-600 " />
             </div>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="flex items-center space-x-3">
-              <BookOpen className="h-8 w-8 text-green-600" />
+            <div className="flex items-center  justify-around">
+              
               <div>
                 <p className="text-sm font-medium text-gray-600">Category</p>
                 <p className="font-semibold text-gray-900 capitalize">{currentCourse.category}</p>
               </div>
+              <BookOpen className="h-6 w-6 text-green-600" />
             </div>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="flex items-center space-x-3">
-              <Users className="h-8 w-8 text-purple-600" />
+            <div className="flex items-center  justify-around">
+              
               <div>
                 <p className="text-sm font-medium text-gray-600">Lessons</p>
                 <p className="font-semibold text-gray-900">{currentCourse.totalLessons || 0}</p>
               </div>
+              <Users className="h-6 w-6 text-purple-600" />
             </div>
           </div>
           
           <div className="bg-white rounded-lg shadow-sm p-4">
-            <div className="flex items-center space-x-3">
-              <Award className="h-8 w-8 text-yellow-600" />
+            <div className="flex items-center justify-around">
+              
               <div>
                 <p className="text-sm font-medium text-gray-600">Status</p>
                 <p className="font-semibold text-gray-900">
                   {totalProgress === 100 ? 'Completed' : 'In Progress'}
                 </p>
               </div>
+              <Award className="h-6 w-6 text-yellow-600" />
             </div>
           </div>
         </div>
@@ -419,7 +423,7 @@ const CourseProgress = () => {
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                     : isSectionCompleted(section)
                     ? 'bg-green-200 text-green-900 border border-green-300 hover:bg-green-500'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-blue-400 text-white hover:bg-blue-700'
                 }`}
                 disabled={section === 'certificate' && !isCertificateAvailable()}
               >
@@ -433,7 +437,7 @@ const CourseProgress = () => {
                 ) : (
                   <>
                     <Play className="h-4 w-4" />
-                    <span>
+                    <span className="text-gray-800">
                       {isSectionCompleted(section) ? 'Review' : 'Start'}
                     </span>
                   </>
@@ -446,7 +450,7 @@ const CourseProgress = () => {
         {/* Progress Summary */}
         <div className="bg-white rounded-lg shadow-sm p-6 mt-8">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Progress Summary</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4">
             {sections.filter(s => s !== 'certificate').map((section) => (
               <div key={section} className="text-center">
                 <div className={`w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-2 ${

@@ -154,13 +154,12 @@ export default function Checkout() {
   }
 
   const coursePrice = course.price || 15000;
-  const gst = Math.round(coursePrice * 0.18);
-  const totalAmount = coursePrice + gst;
+  const totalAmount = coursePrice;
 
   return (
-    <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-100 py-4 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
+        <div className="text-center mb-5">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Checkout</h1>
           <p className="text-gray-600">Complete your enrollment for {course.courseTitle}</p>
         </div>
@@ -196,10 +195,7 @@ export default function Checkout() {
                   <span className="text-gray-600">Course Fees</span>
                   <span className="font-semibold">₹{coursePrice.toLocaleString()}</span>
                 </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-gray-600">GST (18%)</span>
-                  <span className="font-semibold">₹{gst.toLocaleString()}</span>
-                </div>
+                
                 <div className="flex justify-between items-center border-t pt-2">
                   <span className="text-lg font-bold text-gray-900">Total Amount</span>
                   <span className="text-lg font-bold text-gray-900">₹{totalAmount.toLocaleString()}</span>
@@ -334,18 +330,7 @@ export default function Checkout() {
           </div>
         </div>
 
-        {/* Additional Info */}
-        <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
-          <h3 className="font-bold text-gray-900 mb-4">What's Included</h3>
-          <ul className="space-y-2 text-sm text-gray-600">
-            <li>✅ Full course access for {course.duration || "lifetime"}</li>
-            <li>✅ Course materials and resources</li>
-            <li>✅ Certificate of completion</li>
-            <li>✅ Instructor support</li>
-            <li>✅ Lifetime access to course updates</li>
-            <li>✅ 30-day money-back guarantee</li>
-          </ul>
-        </div>
+       
 
         {/* Security Info */}
         <div className="mt-4 text-center">

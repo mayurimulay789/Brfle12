@@ -413,6 +413,7 @@ const GenerateCertificate = () => {
         await navigator.clipboard.writeText(window.location.href)
         alert('Certificate link copied to clipboard!')
       } catch (err) {
+        console.log(err);
         alert('Failed to copy link. Please copy the URL manually.')
       }
     }

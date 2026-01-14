@@ -33,6 +33,18 @@ import GenerateCertificate from "./components/GenerateCertificate.jsx";
 import QuestionAnswer from "./components/QuestionAnswer.jsx";
 import CourseProgress from "./components/CourseProgress.jsx";
 import ExperienceDiary from "./components/ExperienceDiary.jsx";
+import { useLocation } from "react-router-dom";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    // Scroll to top when route changes
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
 
 // Home Component
 function Home() {
@@ -74,6 +86,7 @@ function AppContent() {
 
   return (
     <Router>
+     <ScrollToTop /> 
       <Navbar />
       <div className="App scroll-smooth pt-16">
         <Routes>

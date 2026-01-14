@@ -7,7 +7,6 @@ import AddLesson from "./AddLesson"
 import {
   fetchCourseLessons,
   deleteLesson,
-  setCurrentLesson,
   clearError,
   clearSuccess
 } from "../store/slices/lessonSlice"
@@ -19,7 +18,6 @@ const LessonManagement = ({ courseId, courseTitle, onClose }) => {
     loading,
     error,
     success,
-    currentLesson
   } = useSelector((state) => state.lessons)
 
   const [isCreatingLesson, setIsCreatingLesson] = useState(false)
@@ -82,12 +80,6 @@ const LessonManagement = ({ courseId, courseTitle, onClose }) => {
     }
   }
 
-  const handleReorderLesson = async (lessonId, direction) => {
-    // This would require additional backend implementation
-    console.log(`Reordering lesson ${lessonId} ${direction}`)
-    // You would dispatch an updateLesson action here with new order
-  }
-
   const toggleExpandLesson = (lessonId) => {
     setExpandedLesson(expandedLesson === lessonId ? null : lessonId)
   }
@@ -119,7 +111,7 @@ const LessonManagement = ({ courseId, courseTitle, onClose }) => {
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-white sticky top-0 z-10">
           <div>
-            <h4 className="text-2xl font-bold text-gray-900">Lesson Management</h4>
+            <h4 className="text-xl font-bold text-gray-700">Lesson Management</h4>
             <p className="text-gray-600 mt-1">Course: {courseTitle}</p>
           </div>
           <div className="flex items-center space-x-4">
@@ -128,7 +120,7 @@ const LessonManagement = ({ courseId, courseTitle, onClose }) => {
               className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 font-medium"
             >
               <Plus className="h-5 w-5" />
-              <span>Add Lesson</span>
+              <span className="text-white">Add Lesson</span>
             </button>
             <button 
               onClick={onClose}
@@ -269,7 +261,7 @@ const LessonManagement = ({ courseId, courseTitle, onClose }) => {
                               {/* Action Buttons */}
                               <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
                                 {/* Reorder Buttons */}
-                                <div className="flex flex-col space-y-1 mr-2">
+                                {/* <div className="flex flex-col space-y-1 mr-2">
                                   <button
                                     onClick={() => handleReorderLesson(lesson._id, 'up')}
                                     disabled={index === 0}
@@ -294,14 +286,14 @@ const LessonManagement = ({ courseId, courseTitle, onClose }) => {
                                   >
                                     <ArrowDown className="h-4 w-4" />
                                   </button>
-                                </div>
+                                </div> */}
 
                                 <button
                                   onClick={() => handlePreviewLesson(lesson)}
                                   className="text-blue-600 hover:text-blue-800 p-2 transition-colors"
                                   title="Preview Lesson"
                                 >
-                                  <Eye className="h-5 w-5" />
+                                  <Eye className="h-4 w-4" />
                                 </button>
 
                                 <button
@@ -309,7 +301,7 @@ const LessonManagement = ({ courseId, courseTitle, onClose }) => {
                                   className="text-green-600 hover:text-green-800 p-2 transition-colors"
                                   title="Edit Lesson"
                                 >
-                                  <Edit className="h-5 w-5" />
+                                  <Edit className="h-4 w-4" />
                                 </button>
 
                                 <button
@@ -317,7 +309,7 @@ const LessonManagement = ({ courseId, courseTitle, onClose }) => {
                                   className="text-red-600 hover:text-red-800 p-2 transition-colors"
                                   title="Delete Lesson"
                                 >
-                                  <Trash2 className="h-5 w-5" />
+                                  <Trash2 className="h-4 w-4" />
                                 </button>
                               </div>
                             </div>

@@ -1,111 +1,4 @@
-// "use client"
-
-// import { useEffect, useState } from "react"
-// import { useDispatch, useSelector } from "react-redux"
-// import { Users, BookOpen, TrendingUp, Download, } from "lucide-react"
-// import AdminUserTable from "../Components/AdminUserTable"
-// import AdminCourseForm from "../Components/AdminCourseForm"
-// // import AdminContactMessages from "../Components/AdminContactMessages"
-
-
-// import { IndianRupee } from "lucide-react"
-
-// // Custom Indian Rupee Icon component
-// const IndianRupeeIcon = (props) => (
-//   <IndianRupee {...props} />
-// )
-
-// const AdminDashboardPage = () => {
-//   const dispatch = useDispatch()
-//   const { user } = useSelector((state) => state.auth)
-//   const [activeTab, setActiveTab] = useState("overview")
-//   const [stats, setStats] = useState({
-//     totalUsers: 0,
-//     totalCourses: 0,
-//     totalRevenue: 0,
-//     activeEnrollments: 0,
-//   })
-//   const [isLoading, setIsLoading] = useState(true)
-
- 
-
- 
-//   const tabs = [
-//     { id: "overview", label: "Overview" },
-//     { id: "users", label: "Users" },
-//     { id: "courses", label: "Courses" },
-//   ]
-
-//   if (isLoading) {
-//     return (
-//       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-//         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
-//       </div>
-//     )
-//   }
-
-//   return (
-//     <div className="min-h-screen bg-gray-50">
-//       {/* Header */}
-//       <div className="bg-white shadow-sm border-b">
-//         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-//           <div className="flex justify-between items-center py-6">
-//             <div>
-//               <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-//               <p className="text-gray-600">Manage your LMS platform</p>
-//             </div>
-//             <div className="flex space-x-4">
-//               <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-//                 <Download className="h-4 w-4" />
-//                 <span>Export Data</span>
-//               </button>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Navigation Tabs */}
-//       <div className="bg-white border-b">
-//         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-//           <nav className="flex space-x-8">
-//             {tabs.map((tab) => (
-//               <button
-//                 key={tab.id}
-//                 onClick={() => setActiveTab(tab.id)}
-//                 className={`py-4 px-1 border-b-2 font-medium text-sm ${
-//                   activeTab === tab.id
-//                     ? "border-blue-500 text-blue-600"
-//                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-//                 }`}
-//               >
-//                 {tab.label}
-//               </button>
-//             ))}
-//           </nav>
-//         </div>
-//       </div>
-
-//       {/* Content */}
-//       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-//         {activeTab === "overview" && (
-//           <div className="space-y-8">
-           
-
-            
-//           </div>
-//         )}
-
-//         {activeTab === "users" && <AdminUserTable />}
-//         {activeTab === "courses" && <AdminCourseForm />}       
-//       </div>
-//     </div>
-//   )
-// }
-
-// export default AdminDashboardPage
-
 "use client"
-
 import { useEffect, useState } from "react"
 import { useDispatch, useSelector } from "react-redux"
 import { 
@@ -147,15 +40,7 @@ const AdminDashboardPage = () => {
   const { user } = useSelector((state) => state.auth)
   const { 
     dashboardStats,
-    revenueAnalytics,
-    courseAnalytics,
-    userAnalytics,
-    recentActivities,
     dashboardLoading,
-    revenueLoading,
-    courseAnalyticsLoading,
-    userAnalyticsLoading,
-    recentActivitiesLoading,
     dashboardError
   } = useSelector((state) => state.admin)
 
@@ -301,30 +186,6 @@ const AdminDashboardPage = () => {
     }
   ]
 
-  // Quick stats for header
-  const quickStats = [
-    {
-      title: "Daily Visits",
-      value: userAnalytics?.dailyVisits?.toLocaleString() || "1,245",
-      change: userAnalytics?.dailyGrowth || "+12.3%",
-      trend: "up",
-      icon: Eye
-    },
-    {
-      title: "Revenue Today",
-      value: `₹${revenueAnalytics?.todayRevenue?.toLocaleString() || "12,456"}`,
-      change: revenueAnalytics?.dailyGrowth || "+8.4%",
-      trend: "up",
-      icon: DollarSign
-    },
-    {
-      title: "Course Completions",
-      value: courseAnalytics?.dailyCompletions?.toString() || "89",
-      change: courseAnalytics?.completionGrowth || "+15.7%",
-      trend: "up",
-      icon: BookCheck
-    }
-  ]
 
   const tabs = [
     { id: "overview", label: "Overview" },
@@ -332,35 +193,7 @@ const AdminDashboardPage = () => {
     { id: "courses", label: "Courses" },
   ]
 
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case 'enrollment':
-        return <UserPlus className="h-4 w-4 text-blue-500" />
-      case 'completion':
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      case 'purchase':
-        return <DollarSign className="h-4 w-4 text-purple-500" />
-      case 'rating':
-        return <BarChart3 className="h-4 w-4 text-amber-500" />
-      default:
-        return <Activity className="h-4 w-4 text-gray-500" />
-    }
-  }
 
-  const getActivityColor = (type) => {
-    switch (type) {
-      case 'enrollment':
-        return 'bg-blue-50 border-blue-200'
-      case 'completion':
-        return 'bg-green-50 border-green-200'
-      case 'purchase':
-        return 'bg-purple-50 border-purple-200'
-      case 'rating':
-        return 'bg-amber-50 border-amber-200'
-      default:
-        return 'bg-gray-50 border-gray-200'
-    }
-  }
 
   const isLoading = dashboardLoading && !dashboardStats
 
@@ -390,32 +223,13 @@ const AdminDashboardPage = () => {
                 <BarChart3 className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                <h1 className="text-2xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                   Admin Dashboard
                 </h1>
                 <p className="text-gray-600">Welcome back, {user?.name || 'Admin'}! 👋</p>
               </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <select 
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                disabled={dashboardLoading}
-              >
-                <option value="week">Last 7 days</option>
-                <option value="month">Last 30 days</option>
-                <option value="quarter">Last 3 months</option>
-                <option value="year">Last year</option>
-              </select>
-              <button 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2.5 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2 shadow-lg shadow-blue-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={dashboardLoading}
-              >
-                <Download className="h-4 w-4" />
-                <span>Export Report</span>
-              </button>
-            </div>
+           
           </div>
         </div>
       </div>
@@ -481,14 +295,14 @@ const AdminDashboardPage = () => {
           <div className="space-y-8">
 
             {/* Main Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 md:gap-5">
               {statCards.map((stat, index) => (
                 <StatCard key={index} stat={stat} />
               ))}
             </div>
 
             {/* Performance Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-6 md:gap-5">
               {performanceCards.map((stat, index) => (
                 <StatCard key={index} stat={stat} />
               ))}
@@ -504,39 +318,92 @@ const AdminDashboardPage = () => {
 }
 
 // Stat Card Component
-const StatCard = ({ stat }) => (
-  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-lg transition-all duration-300 hover:scale-[1.02] group">
-    {stat.loading ? (
-      <div className="animate-pulse">
-        <div className="flex items-start justify-between mb-4">
-          <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
-          <div className="h-4 bg-gray-200 rounded w-16"></div>
-        </div>
-        <div className="h-8 bg-gray-200 rounded w-3/4 mb-2"></div>
-        <div className="h-4 bg-gray-200 rounded w-1/2 mb-1"></div>
-        <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-      </div>
-    ) : (
-      <>
-        <div className="flex items-start justify-between mb-4">
-          <div className={`w-12 h-12 rounded-xl ${stat.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-200`}>
-            <stat.icon className="h-6 w-6 text-white" />
+
+const StatCard = ({ stat }) => {
+  return (
+    <div
+      className="
+        bg-white border border-gray-100 rounded-2xl
+        p-4 sm:p-4 lg:p-4
+        shadow-sm hover:shadow-lg
+        transition-all duration-300
+        hover:-translate-y-1
+        group
+        w-full
+      "
+    >
+      {stat.loading ? (
+        /* -------------------- Skeleton Loader -------------------- */
+        <div className="animate-pulse space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="w-12 h-12 rounded-xl bg-gray-200" />
+            <div className="h-4 w-14 rounded bg-gray-200" />
           </div>
-          <div className={`flex items-center space-x-1 text-sm ${
-            stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-          }`}>
-            {stat.trend === 'up' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
-            <span>{stat.change}</span>
+
+          <div className="space-y-2">
+            <div className="h-7 w-3/4 bg-gray-200 rounded" />
+            <div className="h-4 w-1/2 bg-gray-200 rounded" />
+            <div className="h-3 w-2/3 bg-gray-200 rounded" />
           </div>
         </div>
-        <div>
-          <p className="text-2xl font-bold text-gray-900 mb-1">{stat.value}</p>
-          <p className="text-sm font-medium text-gray-900">{stat.title}</p>
-          <p className="text-xs text-gray-500 mt-1">{stat.description}</p>
+      ) : (
+        /* -------------------- Content -------------------- */
+        <div className="flex flex-col  h-full">
+          {/* Top Row */}
+          <div className="flex items-start justify-between mb-2 ">
+            {/* Icon */}
+            <div
+              className={`
+                w-11 h-11 sm:w-10 sm:h-10
+                rounded-xl ${stat.color}
+                flex items-center justify-center
+                group-hover:scale-110
+                transition-transform duration-200
+              `}
+            >
+              <stat.icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            </div>
+
+            {/* Trend */}
+            {stat.trend && (
+              <div
+                className={`
+                  flex items-center gap-1 text-xs sm:text-sm font-medium
+                  ${
+                    stat.trend === "up"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                `}
+              >
+                {stat.trend === "up" ? (
+                  <ArrowUp className="w-3 h-3" />
+                ) : (
+                  <ArrowDown className="w-3 h-3" />
+                )}
+                <span>{stat.change}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Main Content */}
+          <div className="mt-auto flex justify-between">
+          <p className="text-sm sm:text-base font-medium text-gray-800 mt-1">
+              {stat.title}
+              
+            </p>
+            <p className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
+              {stat.value}
+            </p>
+
+            
+          </div>
         </div>
-      </>
-    )}
-  </div>
-)
+      )}
+    </div>
+  );
+};
+
+
 
 export default AdminDashboardPage

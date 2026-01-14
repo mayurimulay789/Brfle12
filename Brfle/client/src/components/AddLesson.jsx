@@ -206,7 +206,7 @@ const AddLesson = ({ onClose, editingLesson, courseId, courseTitle, existingLess
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-white sticky top-0 z-10">
           <div>
-            <h4 className="text-2xl font-bold text-gray-900">
+            <h4 className="text-xl font-bold text-gray-700">
               {editingLesson ? "Edit Lesson" : "Add New Lesson"}
             </h4>
             <p className="text-gray-600 mt-1">
@@ -377,7 +377,7 @@ const AddLesson = ({ onClose, editingLesson, courseId, courseTitle, existingLess
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 text-sm"
                 >
                   <Plus className="h-4 w-4" />
-                  <span>Add Resource</span>
+                  <span className="text-white">Add Resource</span>
                 </button>
               </div>
 
@@ -484,7 +484,7 @@ const AddLesson = ({ onClose, editingLesson, courseId, courseTitle, existingLess
               className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="h-5 w-5" />
-              <span>
+              <span className="text-white">
                 {loading 
                   ? (editingLesson ? "Updating..." : "Creating...") 
                   : (editingLesson ? "Update Lesson" : "Create Lesson")

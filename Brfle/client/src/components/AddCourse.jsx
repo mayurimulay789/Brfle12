@@ -128,6 +128,7 @@ const AddCourse = ({ onClose, editingCourse }) => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLocalError("")
+    console.log("button cliked");
 
     if (!validateForm()) {
       return
@@ -221,7 +222,7 @@ const AddCourse = ({ onClose, editingCourse }) => {
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b border-gray-200 bg-white sticky top-0 z-10">
           <div>
-            <h4 className="text-2xl font-bold text-gray-900">
+            <h4 className="text-xl font-bold text-gray-700">
               {editingCourse ? "Edit Course" : "Create New Course"}
             </h4>
             <p className="text-gray-600 mt-1">
@@ -389,7 +390,7 @@ const AddCourse = ({ onClose, editingCourse }) => {
 
             {/* Course Content Section */}
             <section className="bg-gray-50 p-6 rounded-lg border border-gray-200">
-              <h5 className="text-lg font-semibold text-gray-900 mb-4">Course Content</h5>
+              <h5 className="text-lg font-semibold text-gray-900 mb-4">Course ContenFinal course datat</h5>
               
               <div className="space-y-6">
                 <div>
@@ -495,6 +496,7 @@ const AddCourse = ({ onClose, editingCourse }) => {
                       accept="video/*"
                       onChange={handleFileChange(setCoursePreviewVideo, 'Video', 50 * 1024 * 1024)}
                       className="hidden"
+                      
                     />
                   </label>
                   {coursePreviewVideo && (
@@ -590,6 +592,7 @@ const AddCourse = ({ onClose, editingCourse }) => {
                     onKeyPress={handleTagInputKeyPress}
                     placeholder="Add a tag and press Enter..."
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    
                   />
                   <button
                     type="button"
@@ -642,7 +645,7 @@ const AddCourse = ({ onClose, editingCourse }) => {
               className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save className="h-5 w-5" />
-              <span>
+              <span className="text-white">
                 {loading 
                   ? (editingCourse ? "Updating..." : "Creating...") 
                   : (editingCourse ? "Update Course" : "Create Course")

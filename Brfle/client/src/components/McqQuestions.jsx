@@ -242,7 +242,7 @@ const McqQuestions = () => {
               <span>Back to Course Progress</span>
             </button>
             
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
               Test Results - {currentCourse.courseTitle}
             </h1>
             <p className="text-gray-600">Your test has been submitted successfully.</p>
@@ -260,7 +260,7 @@ const McqQuestions = () => {
               )}
             </div>
 
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">
               {result.passed ? 'Congratulations! Test Passed 🎉' : 'Test Not Passed'}
             </h2>
 
@@ -325,7 +325,7 @@ const McqQuestions = () => {
                   className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center space-x-2"
                 >
                   <RotateCcw className="h-4 w-4" />
-                  <span>Retake Test</span>
+                  <span className="text-white ">Retake Test</span>
                 </button>
               )}
             </div>
@@ -349,7 +349,7 @@ const McqQuestions = () => {
               <span>Back to Course Progress</span>
             </button>
             
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            <h1 className="text-2xl font-bold text-gray-700 mb-1">
               MCQ Test - {currentCourse.courseTitle}
             </h1>
           </div>
@@ -432,47 +432,55 @@ const McqQuestions = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={() => setShowConfirmation(true)}
-                className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="h-5 w-5" />
-                <span>Exit Test</span>
-              </button>
-              
-              <div className="h-6 w-px bg-gray-300"></div>
-              
-              <div>
-                <h1 className="text-lg font-semibold text-gray-900">
-                  {currentCourse.courseTitle}
-                </h1>
-                <p className="text-sm text-gray-600">MCQ Test</p>
-              </div>
-            </div>
+  <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 py-3 sm:py-0 sm:h-16">
+      
+      {/* LEFT SECTION */}
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={() => setShowConfirmation(true)}
+          className="flex items-center gap-1 text-gray-600 hover:text-gray-900 transition-colors shrink-0"
+        >
+          <ArrowLeft className="h-5 w-5" />
+          <span className="hidden sm:inline">Exit Test</span>
+        </button>
 
-            <div className="flex items-center space-x-6">
-              {/* Timer */}
-              <div className={`flex items-center space-x-2 ${getTimeWarning()}`}>
-                <Clock className="h-5 w-5" />
-                <span className="font-mono text-lg font-bold">{formatTime(timeLeft)}</span>
-              </div>
+        <div className="hidden sm:block h-6 w-px bg-gray-300" />
 
-              {/* Progress */}
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-900">
-                  Question {currentQuestion + 1} of {testData.questions.length}
-                </div>
-                <div className="text-xs text-gray-600">
-                  {Object.keys(answers).length} answered • {flaggedQuestions.size} flagged
-                </div>
-              </div>
-            </div>
+        <div className="min-w-0">
+          <h1 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
+            {currentCourse.courseTitle}
+          </h1>
+          <p className="text-xs sm:text-sm text-gray-600">MCQ Test</p>
+        </div>
+      </div>
+
+      {/* RIGHT SECTION */}
+      <div className="flex items-center justify-between sm:justify-end gap-4 sm:gap-6">
+        
+        {/* Timer */}
+        <div className={`flex items-center gap-1 sm:gap-2 ${getTimeWarning()}`}>
+          <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="font-mono text-base sm:text-lg font-bold">
+            {formatTime(timeLeft)}
+          </span>
+        </div>
+
+        {/* Progress */}
+        <div className="text-right">
+          <div className="text-xs sm:text-sm font-medium text-gray-900">
+            Q {currentQuestion + 1}/{testData.questions.length}
+          </div>
+          <div className="text-[11px] sm:text-xs text-gray-600">
+            {Object.keys(answers).length} answered • {flaggedQuestions.size} flagged
           </div>
         </div>
       </div>
+
+    </div>
+  </div>
+</div>
+
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -525,7 +533,7 @@ const McqQuestions = () => {
                 className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold mt-4 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send className="h-4 w-4" />
-                <span>{isSubmitting ? 'Submitting...' : 'Submit Test'}</span>
+                <span className="text-white">{isSubmitting ? 'Submitting...' : 'Submit Test'}</span>
               </button>
             </div>
           </div>

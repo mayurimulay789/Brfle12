@@ -151,8 +151,8 @@ export default function AboutBRFLE() {
         <section className="w-full bg-white">
           <div className="max-w-7xl mx-auto px-6 py-20 space-y-16">
             {/* Heading Section */}
-            <div className="text-center space-y-4 mb-5">
-              <h1 className="text-4xl md:text-5xl font-bold">About BRFLE</h1>
+            <div className="text-center space-y-4 mb-4">
+              <h1 className="text-3xl md:text-5xl font-bold">About BRFLE</h1>
             </div>
            {/* Full About Story */}
 <div className="relative bg-gray-300 text-gray-700 rounded-2xl p-10 shadow-lg space-y-6 mb-8 ">
